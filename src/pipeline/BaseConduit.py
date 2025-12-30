@@ -4,14 +4,16 @@
 
 from typing import List, Union, Optional
 from abc import ABC, abstractmethod
+from dataclasses import field
+from datetime import datetime, timezone
 
 # ---------------------------------------------------------------
-# PACKAGE MANAGEMENT
+# BASECONDUIT CLASS -> ABSTRACTION
 # ---------------------------------------------------------------
 
 class BaseConduit(ABC):
 
-    __slots__ = ("reader", "schema" "waypoints", "factories", "verbosity")
+    __slots__ = ("reader", "schema" "waypoints", "factories", "created_at", "verbosity")
 
     def __init__(
         self,
@@ -26,9 +28,10 @@ class BaseConduit(ABC):
         self.waypoints = waypoints
         self.factories = factories
         self.verbosity = verbosity
+        self.created_at = field(default_factory=datetime.now(timezone.utc))
 
     @abstractmethod
-    def execute(self):
+    def execute(self) -> "Other":
         pass
 
     @abstractmethod
@@ -41,23 +44,23 @@ class BaseConduit(ABC):
 
     @property
     @abstractmethod
-    def reader(self) -> "Other":
-        pass
+    def reader(self) -> Union["Other", None]:
+        return self.reader
 
     @property
     @abstractmethod
-    def schema(self) -> "Other":
-        pass
+    def schema(self) -> Union["Other", None]:
+        return self.schema
 
     @property
     @abstractmethod
-    def waypoints(self) -> "Other":
-        pass
+    def waypoints(self) -> Union[List["Other"], "Other"]:
+        return self.waypoints
 
     @property
     @abstractmethod
-    def factories(self) -> "Other":
-        pass
+    def factories(self) -> Union[List["Other"], "Other"]:
+        return self.factories
 
 class Other:
     pass # Placeholder class -> Type checking.
