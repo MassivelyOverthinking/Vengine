@@ -2,7 +2,8 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict, Any
+from collections import OrderedDict
 from abc import ABC, abstractmethod
 from dataclasses import field
 from datetime import datetime, timezone
@@ -13,7 +14,7 @@ from datetime import datetime, timezone
 
 class BaseConduit(ABC):
 
-    __slots__ = ("reader", "schema" "waypoints", "factories", "created_at", "verbosity")
+    __slots__ = ("reader", "schema" "waypoints", "factories", "created_at", "history", "verbosity")
 
     def __init__(
         self,
@@ -27,8 +28,9 @@ class BaseConduit(ABC):
         self.schema = schema
         self.waypoints = waypoints
         self.factories = factories
-        self.verbosity = verbosity
         self.created_at = field(default_factory=datetime.now(timezone.utc))
+        self.history = OrderedDict()
+        self.verbosity = verbosity
 
     @abstractmethod
     def execute(self) -> "Other":
@@ -61,6 +63,10 @@ class BaseConduit(ABC):
     @abstractmethod
     def factories(self) -> Union[List["Other"], "Other"]:
         return self.factories
+    
+    @abstractmethod
+    def get_state(self) -> Dict[str, Any]:
+        pass
 
 class Other:
     pass # Placeholder class -> Type checking.
