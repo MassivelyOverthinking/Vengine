@@ -14,7 +14,17 @@ from datetime import datetime, timezone
 
 class BaseConduit(ABC):
 
-    __slots__ = ("reader", "schema" "waypoints", "factories", "created_at", "history", "verbosity")
+    __slots__ = (
+        "reader",
+        "schema"
+        "waypoints",
+        "factories",
+        "severity",
+        "format",
+        "created_at",
+        "history",
+        "verbosity"
+    )
 
     def __init__(
         self,
@@ -22,12 +32,16 @@ class BaseConduit(ABC):
         schema: "Other" = None,
         waypoints: List["Other"] = [],
         factories: List["Other"] = [],
+        severity: str = "fatal",
+        format: str = "json",
         verbosity: int = 1,
     ):
         self.reader = reader
         self.schema = schema
         self.waypoints = waypoints
         self.factories = factories
+        self.severity = severity
+        self.format = format
         self.created_at = field(default_factory=datetime.now(timezone.utc))
         self.history = OrderedDict()
         self.verbosity = verbosity
