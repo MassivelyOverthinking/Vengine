@@ -2,6 +2,8 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
+from src.utility import retrieve_return_format, retrieve_conduit_severity
+
 from typing import List, Union, Optional, Dict, Any
 from collections import OrderedDict
 from abc import ABC, abstractmethod
@@ -40,8 +42,8 @@ class BaseConduit(ABC):
         self.schema = schema
         self.waypoints = waypoints
         self.factories = factories
-        self.severity = severity
-        self.format = format
+        self.severity = field(default_factory=retrieve_conduit_severity(input=severity))
+        self.format = field(default_factory=retrieve_return_format(input=format))
         self.created_at = field(default_factory=datetime.now(timezone.utc))
         self.history = OrderedDict()
         self.verbosity = verbosity
