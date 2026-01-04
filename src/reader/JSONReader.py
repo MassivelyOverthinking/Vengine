@@ -2,27 +2,20 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-from pandas._typing import FilePath, ReadCsvBuffer
 from typing import List, Union, Optional, Tuple, Any
 from abc import ABC, abstractmethod
 from dataclasses import field
 from datetime import datetime, timezone
 
+from src.reader import BaseReader
+
 # ---------------------------------------------------------------
-# BASEREADER CLASS -> ABSTRACTION
+# JSONREADER CLASS
 # ---------------------------------------------------------------
 
-class BaseReader(ABC):
+class JSONReader(BaseReader):
 
-    __slots__ = ("metadata")
+    __slots__ = ()
 
-    def __init__(
-        self,
-        metadata: bool = True,
-    ):
-        super().__init__(),
-        self.metadata = metadata
-
-    @abstractmethod
-    def read(input: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]) -> Any:
-        pass
+    def __init__(self, metadata = True):
+        super().__init__(metadata)
