@@ -4,12 +4,13 @@
 
 import pandas as pd
 import polars as pl
+import pyarrow as pa
 
 from src.utility import retrieve_output_format
 
-from pandas._typing import FilePath, ReadCsvBuffer
+
 from typing import List, Union, Optional, Tuple, Any, Dict
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import field
 from datetime import datetime, timezone
 
@@ -17,29 +18,30 @@ from datetime import datetime, timezone
 # BASEREADER CLASS -> ABSTRACTION
 # ---------------------------------------------------------------
 
-class BaseReader(ABC):
+class BaseReader():
 
-    __slots__ = ("output_format", "metadata", "history")
+    __slots__ = ("output_format", "collect_metadata", "history")
 
     def __init__(
         self,
         output_format: str = "pandas",
-        metadata: bool = True,
+        collect_metadata: bool = True,
     ):
-        super().__init__(),
         self.output_format = field(default_factory=retrieve_output_format(input=output_format))
-        self.metadata = metadata
+        self.collect_metadata = collect_metadata
         self.history = []
 
 
-    @abstractmethod
     def read(
         self,
-        input: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
-    ) -> pd.DataFrame | pl.DataFrame:
+        input: str = None,
+    ) -> pd.DataFrame | pl.DataFrame | pa.Table:
+        pass
+
+    @abstractmethod
+    def _read_raw():
         pass
 
     @property
-    @abstractmethod
     def history(self) -> List[Dict[str, Any]]:
         return self.history

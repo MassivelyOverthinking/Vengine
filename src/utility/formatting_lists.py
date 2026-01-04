@@ -7,8 +7,9 @@
 # ---------------------------------------------------------------
 
 output_format_list = {
-    "pandas": 0,
-    "polars": 1
+    "pandas": "pandas",
+    "polars": "polars",
+    "pyarrow": "pyarrow",
 }
 
 return_format_list = {
@@ -33,7 +34,7 @@ def retrieve_output_format(input: str) -> str:
 
     if final_output is None:
         raise ValueError(
-            f"Ouput format: {input} not supported!\n List of supported output formats: {return_format_list.keys}"
+            f"Output format: {input} not supported!\n List of supported output formats: {list(return_format_list.keys())}"
         )
     else:
         return final_output
