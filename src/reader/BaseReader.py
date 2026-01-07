@@ -6,6 +6,7 @@ import pandas as pd
 import polars as pl
 import pyarrow as pa
 import json
+import sys
 
 from src.utility import retrieve_output_format
 from src.utility.typings import DataTable, InputType
@@ -22,7 +23,7 @@ from time import perf_counter
 
 class BaseReader():
 
-    __slots__ = ("output_engine", "collect_metadata", "history")
+    __slots__ = ("output_engine", "collect_metadata", "metadata", "history")
 
     def __init__(
         self,
@@ -31,6 +32,7 @@ class BaseReader():
     ):
         self.output_format = field(default_factory=retrieve_output_format(input=output_engine))
         self.collect_metadata = collect_metadata
+        self.metadata = [] if collect_metadata else None
         self.history = []
 
     def read(
@@ -40,22 +42,15 @@ class BaseReader():
         start_time = perf_counter()
 
         raw_data = self._read_raw(input)
-        processed_data = self._process_format(raw_data)
 
         if self.collect_metadata:
-            self._collect_metadata(processed_data)
+            self._collect_metadata(raw_data)
 
         end_stime = perf_counter()
         elapsed_time = end_stime - start_time
         self._collect_history(elapsed_time)
 
-        return processed_data
-
-    def _handle_input(
-        self,
-        input: InputType
-    ) -> DataTable:
-        pass
+        return raw_data
 
     def _collect_history(self, elapsed_time: float) -> None:
         information_dict = {
@@ -68,7 +63,7 @@ class BaseReader():
         self.history.append(json_str)
 
     @abstractmethod
-    def _read_raw(self) -> DataTable:
+    def _read_raw(self, input: InputType, engine: str) -> DataTable:
         pass
 
     @abstractmethod
@@ -82,6 +77,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "pandas",
+                "memory_size": sys.getsizeof(data),
                 "num_rows": data.shape[0],
                 "num_columns": data.shape[1],
                 "columns": data.columns.tolist(),
@@ -92,6 +88,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "polars",
+                "memory_size": sys.getsizeof(data),
                 "num_rows": data.height,
                 "num_columns": data.width,
                 "columns": data.columns,
@@ -102,6 +99,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "pyarrow",
+                "memory_size": sys.getsizeof(data),
                 "num_rows": data.num_rows,
                 "num_columns": data.num_columns,
                 "columns": data.column_names,
@@ -110,6 +108,28 @@ class BaseReader():
         else:
             metadata = {}
 
+        self.metadata.append(metadata)
+
     @property
     def history(self) -> List[Dict[str, Any]]:
         return self.history
+    
+    @property
+    def metadata(self) -> Optional[List[Dict[str, Any]]]:
+        return self.metadata
+
+    def clear_metadata(self) -> None:
+        if self.collect_metadata:
+            self.metadata = []
+
+    def clear_history(self) -> None:
+        self.history = []
+
+    def __repr__(self):
+        pass
+
+    def __str__(self):
+        pass
+
+    def __hash__(self):
+        pass
