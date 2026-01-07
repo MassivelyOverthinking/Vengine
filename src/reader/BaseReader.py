@@ -7,10 +7,9 @@ import polars as pl
 import pyarrow as pa
 
 from src.utility import retrieve_output_format
-
+from src.utility.typings import DataTable, InputType
 
 from typing import List, Union, Optional, Tuple, Any, Dict
-from io import StringIO, BytesIO
 from abc import abstractmethod
 from dataclasses import field
 from datetime import datetime, timezone
@@ -18,8 +17,6 @@ from datetime import datetime, timezone
 # ---------------------------------------------------------------
 # BASEREADER CLASS -> ABSTRACTION
 # ---------------------------------------------------------------
-
-
 
 class BaseReader():
 
@@ -36,18 +33,18 @@ class BaseReader():
 
     def read(
         self,
-        input: str | StringIO | BytesIO,
-    ) -> pd.DataFrame | pl.DataFrame | pa.Table:
+        input: InputType,
+    ) -> DataTable:
         pass
 
     def _handle_input(
         self,
-        input: str | StringIO | BytesIO
-    ) -> str | StringIO | BytesIO:
+        input: InputType
+    ) -> DataTable:
         pass
 
     @abstractmethod
-    def _read_raw(self) -> pd.DataFrame | pl.DataFrame | pa.Table:
+    def _read_raw(self) -> DataTable:
         pass
 
     @abstractmethod
