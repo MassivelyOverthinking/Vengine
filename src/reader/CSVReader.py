@@ -37,3 +37,4 @@ class CSVReader(BaseReader):
                 df = pa.csv.read_csv(input)
 
         return df
+    

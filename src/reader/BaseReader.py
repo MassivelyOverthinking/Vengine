@@ -64,7 +64,8 @@ class BaseReader():
             "elapsed_time": elapsed_time,
         }
 
-        self.history.append(json.dumps(information_dict))
+        json_str = json.dumps(information_dict)
+        self.history.append(json_str)
 
     @abstractmethod
     def _read_raw(self) -> DataTable:
@@ -75,8 +76,39 @@ class BaseReader():
         pass
 
     @abstractmethod
-    def _collect_metadata(self):
-        pass
+    def _collect_metadata(self, data: DataTable) -> None:
+        if isinstance(data, pd.DataFrame):
+            metadata = {
+                "reader_id": id(self),
+                "class": self.__class__.__name__,
+                "frame_type": "pandas",
+                "num_rows": data.shape[0],
+                "num_columns": data.shape[1],
+                "columns": data.columns.tolist(),
+                "dtypes": data.dtypes.apply(lambda x: x.name).to_dict(),
+            }
+        elif isinstance(data, pl.DataFrame):
+            metadata = {
+                "reader_id": id(self),
+                "class": self.__class__.__name__,
+                "frame_type": "polars",
+                "num_rows": data.height,
+                "num_columns": data.width,
+                "columns": data.columns,
+                "dtypes": {col: str(dtype) for col, dtype in zip(data.columns, data.dtypes)},
+            }
+        elif isinstance(data, pa.Table):
+            metadata = {
+                "reader_id": id(self),
+                "class": self.__class__.__name__,
+                "frame_type": "pyarrow",
+                "num_rows": data.num_rows,
+                "num_columns": data.num_columns,
+                "columns": data.column_names,
+                "dtypes": {col: str(data.schema.field(col).type) for col in data.column_names},
+            }
+        else:
+            metadata = {}
 
     @property
     def history(self) -> List[Dict[str, Any]]:
