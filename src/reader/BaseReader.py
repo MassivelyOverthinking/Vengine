@@ -23,17 +23,28 @@ from time import perf_counter
 
 class BaseReader():
 
-    __slots__ = ("output_engine", "collect_metadata", "metadata", "history")
+    __slots__ = (
+        "output_format",
+        "collect_metadata",
+        "metadata",
+        "history",
+        "history_max_size",
+        "metadata_max_size"
+    )
 
     def __init__(
         self,
         output_engine: str = "pandas",
         collect_metadata: bool = True,
+        history_max_size: int = 1000,
+        metadata_max_size: int = 1000,
     ):
         self.output_format = field(default_factory=retrieve_output_format(input=output_engine))
         self.collect_metadata = collect_metadata
         self.metadata = [] if collect_metadata else None
         self.history = []
+        self.history_max_size = history_max_size
+        self.metadata_max_size = metadata_max_size
 
     def read(
         self,
@@ -58,6 +69,9 @@ class BaseReader():
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "elapsed_time": elapsed_time,
         }
+
+        if self.history >= self.history_max_size:
+            self.history.pop(0)
 
         json_str = json.dumps(information_dict)
         self.history.append(json_str)
@@ -107,6 +121,9 @@ class BaseReader():
             }
         else:
             metadata = {}
+
+        if self.metadata >= self.metadata_max_size:
+            self.metadata.pop(0)
 
         self.metadata.append(metadata)
 
