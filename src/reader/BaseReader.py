@@ -31,6 +31,7 @@ class BaseReader():
         "metadata",
         "history",
         "lifecycle",
+        "verbosity"
     )
 
     def __init__(
@@ -41,6 +42,7 @@ class BaseReader():
         collect_lifecycle: bool = True,
         history_max_size: Optional[int] = None,
         metadata_max_size: Optional[int] = None,
+        verbosity: int = 1,
     ):
         self.default_engine = field(default_factory=retrieve_output_format(input=default_engine))
         self.collect_metadata = collect_metadata
@@ -49,6 +51,7 @@ class BaseReader():
         self.metadata = deque(maxlen=metadata_max_size) if collect_metadata else None
         self.history = deque(maxlen=history_max_size) if collect_history else None
         self.lifecycle = field(default_factory=self._initialize_lifecycle) if collect_lifecycle else None
+        self.verbosity = verbosity
 
     def read(
         self,
