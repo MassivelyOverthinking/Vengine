@@ -12,6 +12,7 @@ from src.utility import retrieve_output_format
 from src.utility.typings import DataTable, InputType
 
 from typing import List, Union, Optional, Tuple, Any, Dict
+from collections import deque
 from abc import abstractmethod
 from dataclasses import field
 from datetime import datetime, timezone
@@ -24,42 +25,43 @@ from time import perf_counter
 class BaseReader():
 
     __slots__ = (
-        "output_format",
-        "collect_metadata",
+        "default_engine",
         "metadata",
         "history",
-        "history_max_size",
-        "metadata_max_size"
     )
 
     def __init__(
         self,
-        output_engine: str = "pandas",
+        default_engine: str = "pandas",
         collect_metadata: bool = True,
-        history_max_size: int = 1000,
-        metadata_max_size: int = 1000,
+        collect_history: bool = True,
+        history_max_size: int = 100,
+        metadata_max_size: int = 100,
     ):
-        self.output_format = field(default_factory=retrieve_output_format(input=output_engine))
-        self.collect_metadata = collect_metadata
-        self.metadata = [] if collect_metadata else None
-        self.history = []
-        self.history_max_size = history_max_size
-        self.metadata_max_size = metadata_max_size
+        self.default_engine = field(default_factory=retrieve_output_format(input=default_engine))
+        self.metadata = deque(maxlen=metadata_max_size) if collect_metadata else None
+        self.history = deque(maxlen=history_max_size) if collect_history else None
 
     def read(
         self,
         input: InputType,
+        engine: Optional[str] = None
     ) -> DataTable:
-        start_time = perf_counter()
+        if engine is None:
+            engine = self.default_engine
 
-        raw_data = self._read_raw(input)
+        if self.history is not None:
+            start_time = perf_counter()
 
-        if self.collect_metadata:
-            self._collect_metadata(raw_data)
+            raw_data = self._read_raw(input, engine=engine)
 
-        end_stime = perf_counter()
-        elapsed_time = end_stime - start_time
-        self._collect_history(elapsed_time)
+            end_stime = perf_counter()
+            elapsed_time = end_stime - start_time
+        else:
+            raw_data = self._read_raw(input, engine=engine)
+
+        if self.history is not None:
+            self._collect_history(elapsed_time)
 
         return raw_data
 
@@ -69,9 +71,6 @@ class BaseReader():
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "elapsed_time": elapsed_time,
         }
-
-        if self.history >= self.history_max_size:
-            self.history.pop(0)
 
         json_str = json.dumps(information_dict)
         self.history.append(json_str)
@@ -122,13 +121,10 @@ class BaseReader():
         else:
             metadata = {}
 
-        if self.metadata >= self.metadata_max_size:
-            self.metadata.pop(0)
-
         self.metadata.append(metadata)
 
     @property
-    def history(self) -> List[Dict[str, Any]]:
+    def history(self) -> Optional[List[Dict[str, Any]]]:
         return self.history
     
     @property
@@ -136,11 +132,12 @@ class BaseReader():
         return self.metadata
 
     def clear_metadata(self) -> None:
-        if self.collect_metadata:
+        if self.metadata is not None:
             self.metadata = []
 
     def clear_history(self) -> None:
-        self.history = []
+        if self.history is not None:
+            self.history = []
 
     def __repr__(self):
         pass
