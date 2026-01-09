@@ -81,21 +81,24 @@ class BaseReader():
 
         engine = retrieve_output_format(input=engine) if engine is not None else self.default_engine
 
-        if self.history is not None:
-            start_time = perf_counter()
+        start_time = perf_counter()
 
+        try:
             raw_data = self._read_raw(input, engine=engine)
+        except Exception as e:
+            self.logger.error(f"Read operation failed with error: {e}")
+            self._update_lifecycle(engine, 0.0, success=False)
+            raise
+        finally:
+            end_time = perf_counter()
+            elapsed_time = end_time - start_time
 
-            end_stime = perf_counter()
-            elapsed_time = end_stime - start_time
-
+        if self.collect_history:
             self._collect_history(elapsed_time)
-            if self.metadata is not None:
-                self._collect_metadata(raw_data)
-        else:
-            raw_data = self._read_raw(input, engine=engine)
-            if self.metadata is not None:
-                self._collect_metadata(raw_data)
+        if self.collect_metadata:
+            self._collect_metadata(raw_data)
+
+        self._update_lifecycle(engine, elapsed_time, success=True)
 
         self.logger.info(f"Read operation completed successfully!")
 
@@ -252,7 +255,7 @@ class BaseReader():
         new_instance.collect_metadata = self.collect_metadata
         new_instance.collect_history = self.collect_history
         new_instance.collect_lifecycle = self.collect_lifecycle
-        new_instance.verbosity = self.verbosity
+        new_instance.logger = self.logger
 
         return new_instance
 
