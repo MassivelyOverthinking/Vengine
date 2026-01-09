@@ -9,8 +9,8 @@ import sys
 import json
 
 from src.utility import retrieve_output_format
-from src.utility.typings import DataTable, InputType
-from src.utility.setup_logger import get_class_logger
+from src.utility import DataTable, InputType
+from src.utility import get_class_logger
 
 from typing import List, Optional, Tuple, Any, Dict
 from collections import deque
@@ -30,6 +30,8 @@ class BaseReader():
         "collect_metadata",
         "collect_history",
         "collect_lifecycle",
+        "history_size",
+        "metadata_size",
         "metadata",
         "history",
         "lifecycle",
@@ -46,13 +48,15 @@ class BaseReader():
         metadata_max_size: Optional[int] = None,
         verbosity: int = 0,
     ):
-        self.default_engine = field(default_factory=retrieve_output_format(input=default_engine))
+        self.default_engine = retrieve_output_format(input=default_engine)
         self.collect_metadata = collect_metadata
         self.collect_history = collect_history
         self.collect_lifecycle = collect_lifecycle
         self.metadata = deque(maxlen=metadata_max_size) if collect_metadata else None
         self.history = deque(maxlen=history_max_size) if collect_history else None
-        self.lifecycle = field(default_factory=self._initialize_lifecycle) if collect_lifecycle else None
+        self.lifecycle = self._initialize_lifecycle if collect_lifecycle else None
+        self.history_size = history_max_size
+        self.metadata_size = metadata_max_size
         self.logger = get_class_logger(self.__class__, verbosity=verbosity)
 
     @property
@@ -180,7 +184,7 @@ class BaseReader():
     
     def _update_lifecycle(self, engine: str, elapsed_time: float, success: bool) -> None:
         if self.lifecycle is None:
-            self.logger.warning("Lifecycle collection is disabled! Cannot update lifecycle information.")
+            self.logger.warning("Lifecycle data disabled! Cannot update lifecycle information.")
             return
 
         self.lifecycle["total_reads"] += 1
@@ -199,8 +203,7 @@ class BaseReader():
             self.lifecycle["total_elapsed_time"] / self.lifecycle["total_reads"]
         )
 
-        if engine in self.lifecycle["engines_used"]:
-            self.lifecycle["engines_used"][engine] += 1
+        self.lifecycle["engines_used"][engine] += 1
 
         self.logger.info(f"Lifecycle information updated! Read operation success: {success}")
 
@@ -210,31 +213,33 @@ class BaseReader():
 
     def get_state(self) -> str:
         state_dict = {
-            "class": self.__class__.__name__,
+            "class": self.__class__,
             "default_engine": self.default_engine,
             "collect_metadata": self.collect_metadata,
             "collect_history": self.collect_history,
             "collect_lifecycle": self.collect_lifecycle,
+            "history_max_size": self.history_size,
+            "metadata_max_size": self.metadata_size,
             "verbosity": self.logger.level,
         }
 
         json_str = json.dumps(state_dict, indent=4)
-        self.logger.info("State retrieved successfully.")
+        self.logger.info(f"{self.__class__.__name__} state saved successfully!")
         return json_str
 
     def clear_metadata(self) -> None:
-        if self.metadata is not None:
-            self.metadata = []
-            self.logger.info("Metadata has been cleared.")
+        if self.collect_metadata:
+            self.metadata = deque(maxlen=self.metadata_size)
+            self.logger.info(f"{self.__class__.__name__}: Metadata has been cleared.")
 
-        self.logger.warning("No metadata to clear.")
+        self.logger.warning(f"{self.__class__.__name__}: No metadata to clear.")
 
     def clear_history(self) -> None:
-        if self.history is not None:
-            self.history = []
-            self.logger.info("History has been cleared.")
+        if self.collect_history:
+            self.history = deque(maxlen=self.history_size)
+            self.logger.info(f"{self.__class__.__name__}: History has been cleared.")
 
-        self.logger.warning("No history to clear.")
+        self.logger.warning(f"{self.__class__.__name__}: No history to clear.")
 
     def _key(self) -> Tuple:
         return (self.default_engine, type(self))
