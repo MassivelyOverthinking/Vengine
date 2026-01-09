@@ -6,6 +6,7 @@ import pandas as pd
 import polars as pl
 import pyarrow as pa
 import sys
+import json
 
 from src.utility import retrieve_output_format
 from src.utility.typings import DataTable, InputType
@@ -53,6 +54,18 @@ class BaseReader():
         self.history = deque(maxlen=history_max_size) if collect_history else None
         self.lifecycle = field(default_factory=self._initialize_lifecycle) if collect_lifecycle else None
         self.logger = get_class_logger(self.__class__, verbosity=verbosity)
+
+    @property
+    def history(self) -> Optional[List[Dict[str, Any]]]:
+        return self.history
+    
+    @property
+    def metadata(self) -> Optional[List[Dict[str, Any]]]:
+        return self.metadata
+    
+    @property
+    def lifecycle(self) -> Optional[Dict[str, Any]]:
+        return self.lifecycle
 
     def read(
         self,
@@ -161,22 +174,50 @@ class BaseReader():
 
         self.logger.info("Lifecycle information initialized.")
         return lifecycle_info
+    
+    def _update_lifecycle(self, engine: str, elapsed_time: float, success: bool) -> None:
+        if self.lifecycle is None:
+            self.logger.warning("Lifecycle collection is disabled! Cannot update lifecycle information.")
+            return
+
+        self.lifecycle["total_reads"] += 1
+        if success:
+            self.lifecycle["successful_reads"] += 1
+        else:
+            self.lifecycle["failed_reads"] += 1
+
+        self.lifecycle["success_rate"] = (
+            self.lifecycle["successful_reads"] / self.lifecycle["total_reads"]
+        ) * 100.0
+
+        self.lifecycle["last_read_at"] = datetime.now(timezone.utc).isoformat()
+        self.lifecycle["total_elapsed_time"] += elapsed_time
+        self.lifecycle["average_read_time"] = (
+            self.lifecycle["total_elapsed_time"] / self.lifecycle["total_reads"]
+        )
+
+        if engine in self.lifecycle["engines_used"]:
+            self.lifecycle["engines_used"][engine] += 1
+
+        self.logger.info(f"Lifecycle information updated! Read operation success: {success}")
 
     @abstractmethod
     def _read_raw(self, input: InputType, engine: str) -> DataTable:
         pass
 
-    @property
-    def history(self) -> Optional[List[Dict[str, Any]]]:
-        return self.history
-    
-    @property
-    def metadata(self) -> Optional[List[Dict[str, Any]]]:
-        return self.metadata
-    
-    @property
-    def lifecycle(self) -> Optional[Dict[str, Any]]:
-        return self.lifecycle
+    def get_state(self) -> str:
+        state_dict = {
+            "class": self.__class__.__name__,
+            "default_engine": self.default_engine,
+            "collect_metadata": self.collect_metadata,
+            "collect_history": self.collect_history,
+            "collect_lifecycle": self.collect_lifecycle,
+            "verbosity": self.logger.level,
+        }
+
+        json_str = json.dumps(state_dict, indent=4)
+        self.logger.info("State retrieved successfully.")
+        return json_str
 
     def clear_metadata(self) -> None:
         if self.metadata is not None:
