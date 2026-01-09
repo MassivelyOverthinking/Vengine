@@ -96,6 +96,7 @@ class BaseReader():
         }
 
         self.history.append(information_dict)
+        self.logger.info("History collected successfully.")
 
     def _collect_metadata(self, data: DataTable) -> None:
         if isinstance(data, pd.DataFrame):
@@ -132,9 +133,11 @@ class BaseReader():
                 "dtypes": {col: str(data.schema.field(col).type) for col in data.column_names},
             }
         else:
+            self.logger.error(f"Unsupported data type for metadata collection: {type(data)}")
             raise TypeError(f"Unsupported data type for metadata collection: {type(data)}")
 
         self.metadata.append(metadata)
+        self.logger.info("Metadata collected successfully.")
 
     def _initialize_lifecycle(self) -> Dict[str, Any]:
         lifecycle_info = {
@@ -199,6 +202,18 @@ class BaseReader():
         if not isinstance(value, self.__class__):
             return False
         return self._key() == value._key()
+    
+    def __copy__(self):
+        cls = self.__class__
+        new_instance = cls.__new__(cls)
+
+        new_instance.default_engine = self.default_engine
+        new_instance.collect_metadata = self.collect_metadata
+        new_instance.collect_history = self.collect_history
+        new_instance.collect_lifecycle = self.collect_lifecycle
+        new_instance.verbosity = self.verbosity
+
+        return new_instance
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={id(self)}>"
