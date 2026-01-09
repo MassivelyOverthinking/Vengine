@@ -9,8 +9,9 @@ import sys
 
 from src.utility import retrieve_output_format
 from src.utility.typings import DataTable, InputType
+from src.utility.setup_logger import get_class_logger
 
-from typing import List, Union, Optional, Tuple, Any, Dict
+from typing import List, Optional, Tuple, Any, Dict
 from collections import deque
 from abc import abstractmethod
 from dataclasses import field
@@ -31,7 +32,7 @@ class BaseReader():
         "metadata",
         "history",
         "lifecycle",
-        "verbosity"
+        "logger"
     )
 
     def __init__(
@@ -42,7 +43,7 @@ class BaseReader():
         collect_lifecycle: bool = True,
         history_max_size: Optional[int] = None,
         metadata_max_size: Optional[int] = None,
-        verbosity: int = 1,
+        verbosity: int = 0,
     ):
         self.default_engine = field(default_factory=retrieve_output_format(input=default_engine))
         self.collect_metadata = collect_metadata
@@ -51,7 +52,7 @@ class BaseReader():
         self.metadata = deque(maxlen=metadata_max_size) if collect_metadata else None
         self.history = deque(maxlen=history_max_size) if collect_history else None
         self.lifecycle = field(default_factory=self._initialize_lifecycle) if collect_lifecycle else None
-        self.verbosity = verbosity
+        self.logger = get_class_logger(self.__class__, verbosity=verbosity)
 
     def read(
         self,
@@ -62,6 +63,8 @@ class BaseReader():
             raise TypeError(f"Input must be of type InputType - Recieved {type(input)}")
         if engine is not None and not isinstance(engine, str):
             raise TypeError(f"Engine must be of type str - Recieved {type(engine)}")
+        
+        self.logger.info(f"Starting Read operation!")
 
         engine = retrieve_output_format(input=engine) if engine is not None else self.default_engine
 
@@ -80,6 +83,8 @@ class BaseReader():
             raw_data = self._read_raw(input, engine=engine)
             if self.metadata is not None:
                 self._collect_metadata(raw_data)
+
+        self.logger.info(f"Read operation completed successfully!")
 
         return raw_data
 
@@ -150,7 +155,8 @@ class BaseReader():
                 "pyarrow": 0,
             }
         }
-        
+
+        self.logger.info("Lifecycle information initialized.")
         return lifecycle_info
 
     @abstractmethod
@@ -172,10 +178,16 @@ class BaseReader():
     def clear_metadata(self) -> None:
         if self.metadata is not None:
             self.metadata = []
+            self.logger.info("Metadata has been cleared.")
+
+        self.logger.warning("No metadata to clear.")
 
     def clear_history(self) -> None:
         if self.history is not None:
             self.history = []
+            self.logger.info("History has been cleared.")
+
+        self.logger.warning("No history to clear.")
 
     def _key(self) -> Tuple:
         return (self.default_engine, type(self))
