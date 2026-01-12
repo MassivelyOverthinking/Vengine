@@ -6,10 +6,7 @@ import pandas as pd
 import polars as pl
 import pyarrow as pa
 
-from typing import List, Union, Optional, Tuple, Any
-from abc import ABC, abstractmethod
-from dataclasses import field
-from datetime import datetime, timezone
+from typing import List, Optional, Tuple, Any
 
 from src.reader import BaseReader
 from src.utility.typings import DataTable, InputType

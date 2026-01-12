@@ -5,7 +5,6 @@
 import pandas as pd
 import polars as pl
 import pyarrow as pa
-import sys
 import json
 
 from src.utility import retrieve_output_format
@@ -15,7 +14,6 @@ from src.utility import get_class_logger
 from typing import List, Optional, Tuple, Any, Dict
 from collections import deque
 from abc import abstractmethod
-from dataclasses import field
 from datetime import datetime, timezone
 from time import perf_counter
 
@@ -124,7 +122,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "pandas",
-                "memory_size": sys.getsizeof(data),
+                "memory_size": data.memory_usage(deep=True).sum(),
                 "num_rows": data.shape[0],
                 "num_columns": data.shape[1],
                 "columns": data.columns.tolist(),
@@ -135,7 +133,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "polars",
-                "memory_size": sys.getsizeof(data),
+                "memory_size": data.estimated_size(),
                 "num_rows": data.height,
                 "num_columns": data.width,
                 "columns": data.columns,
@@ -146,7 +144,7 @@ class BaseReader():
                 "reader_id": id(self),
                 "class": self.__class__.__name__,
                 "frame_type": "pyarrow",
-                "memory_size": sys.getsizeof(data),
+                "memory_size": data.nbytes,
                 "num_rows": data.num_rows,
                 "num_columns": data.num_columns,
                 "columns": data.column_names,
@@ -265,10 +263,35 @@ class BaseReader():
         return new_instance
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} id={id(self)}>"
+        """
+        Returns a concise, nformative string represenntation of the BaseReader instance.
+        """
+        
+        repr_parts = [
+            f"Reader Type       : {self.__class__.__name__}",
+            f"ID                : {id(self)}",
+            f"Default Engine    : {self.default_engine}",
+            f"Collect Metadata  : {self.collect_metadata}",
+            f"Collect History   : {self.collect_history}",
+            f"Collect Lifecycle : {self.collect_lifecycle}",
+        ]
+
+        if self.lifecycle is not None:
+            repr_parts.extend([
+                f"Total Reads       : {self.lifecycle.get('total_reads', 0)}",
+                f"Successful Reads  : {self.lifecycle.get('successful_reads', 0)}",
+                f"Failed Reads      : {self.lifecycle.get('failed_reads', 0)}",
+                f"Success Rate      : {self.lifecycle.get('success_rate', 0.0):.2f}%",
+            ])
+
+        return f"<{', '.join(repr_parts)}>"
 
     def __str__(self) -> str:
-        return f"<{self.__class__.__name__} id={id(self)}>"
+        """
+        Returns a simple human-readable string representation of the BaseReader instance.
+        """
+        
+        return f"<{self.__class__.__name__} id={id(self)}, default_engine={self.default_engine}>"
 
     def __hash__(self) -> int:
         return hash(self._key())
