@@ -243,14 +243,25 @@ class BaseReader():
         return (self.default_engine, type(self))
     
     def __len__(self) -> int:
+        """
+        Returns the total number of read operations performed by the reader.
+        """
+
         return self.lifecycle["total_reads"] if self.lifecycle is not None else 0
     
     def __eq__(self, value) -> bool:
+        """
+        Compares two BaseReader instances for equality based on their configuration and state.
+        """
+
         if not isinstance(value, self.__class__):
             return False
         return self._key() == value._key()
     
     def __copy__(self):
+        """
+        Creates a shallow copy of the BaseReader instance.
+        """
         cls = self.__class__
         new_instance = cls.__new__(cls)
 
@@ -292,6 +303,17 @@ class BaseReader():
         """
         
         return f"<{self.__class__.__name__} id={id(self)}, default_engine={self.default_engine}>"
+    
+    def __bool__(self) -> bool:
+        """
+        Reader-class is considered True is the reader has performed at least one read operation.
+        """
+
+        return self.lifecycle is not None and self.lifecycle.get("total_reads", 0) > 0
 
     def __hash__(self) -> int:
+        """
+        Returns a hash value for the BaseReader instance based on its configuration.
+        """
+        
         return hash(self._key())
