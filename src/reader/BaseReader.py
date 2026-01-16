@@ -7,7 +7,6 @@ import polars as pl
 import pyarrow as pa
 import json
 
-from src.utility import retrieve_output_format
 from src.utility import DataTable, InputType
 from src.utility import get_class_logger
 
@@ -24,7 +23,6 @@ from time import perf_counter
 class BaseReader():
 
     __slots__ = (
-        "default_engine",
         "collect_metadata",
         "collect_history",
         "collect_lifecycle",
@@ -38,7 +36,6 @@ class BaseReader():
 
     def __init__(
         self,
-        default_engine: str = "pandas",
         collect_metadata: bool = True,
         collect_history: bool = True,
         collect_lifecycle: bool = True,
@@ -46,7 +43,6 @@ class BaseReader():
         metadata_max_size: Optional[int] = None,
         verbosity: int = 0,
     ):
-        self.default_engine = retrieve_output_format(input=default_engine)
         self.collect_metadata = collect_metadata
         self.collect_history = collect_history
         self.collect_lifecycle = collect_lifecycle
@@ -80,8 +76,6 @@ class BaseReader():
             raise TypeError(f"Engine must be of type str - Recieved {type(engine)}")
         
         self.logger.info(f"Starting Read operation!")
-
-        engine = retrieve_output_format(input=engine) if engine is not None else self.default_engine
 
         start_time = perf_counter()
 

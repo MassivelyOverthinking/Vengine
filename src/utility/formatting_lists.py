@@ -6,12 +6,6 @@
 # FORMATTING LISTS
 # ---------------------------------------------------------------
 
-output_format_list = {
-    "pandas": "pandas",
-    "polars": "polars",
-    "pyarrow": "pyarrow",
-}
-
 return_format_list = {
     "json": "json",
     "yaml": "yaml",
@@ -24,20 +18,6 @@ error_severity_list = {
     "error": 2,
     "fatal": 3
 }
-
-def retrieve_output_format(input: str) -> str:
-    if not isinstance(input, str):
-        raise TypeError(f"Input string must be of Type: str - Currenty type: {type(input)}")
-    
-    input = input.lower()
-    final_output = output_format_list.get(input)
-
-    if final_output is None:
-        raise ValueError(
-            f"Output format: {input} not supported!\n List of supported output formats: {list(return_format_list.keys())}"
-        )
-    else:
-        return final_output
 
 def retrieve_return_format(input: str) -> str:
     if not isinstance(input, str):
