@@ -8,7 +8,7 @@ from typing import List, Optional, Any
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
-from src.utility.typings import InputType
+from src.typings import ReaderConfig, InputType
 
 # ---------------------------------------------------------------
 # CSVREADER CLASS
@@ -22,7 +22,6 @@ class CSVReader(BaseReader):
         "skip_rows",
         "skip_lines",
         "encoding",
-        "cache",
         "null_values",
         "use_columnns",
         "data_types",
@@ -39,7 +38,6 @@ class CSVReader(BaseReader):
         skip_rows: int = 0,
         skip_lines: int = 0,
         encoding: str = "utf-8",
-        cache: bool = True,
         null_values: Optional[List[str]] = None,
         use_columns: Optional[List[str]] = None,
         data_types: Optional[dict[str, Any]] = None,
@@ -55,13 +53,29 @@ class CSVReader(BaseReader):
         self.skip_rows = skip_rows
         self.skip_lines = skip_lines
         self.encoding = encoding
-        self.cache = cache
         self.null_values = null_values
         self.use_columns = use_columns
         self.data_types = data_types
         self.n_rows = n_rows
         self.try_parse_dates = try_parse_dates
         self.low_memory = low_memory
+
+    def _materialize_config(self) -> ReaderConfig:
+        return ReaderConfig(
+            parameters={
+                "separator": self.separator,
+                "header": self.header,
+                "skip_rows": self.skip_rows,
+                "skip_lines": self.skip_lines,
+                "encoding": self.encoding,
+                "null_values": self.null_values,
+                "use_columns": self.use_columns,
+                "data_types": self.data_types,
+                "n_rows": self.n_rows,
+                "try_parse_dates": self.try_parse_dates,
+                "low_memory": self.low_memory
+            }
+        )
 
     def _read_raw(self, input: InputType) -> LazyFrame:
         df = pl.scan_csv(
