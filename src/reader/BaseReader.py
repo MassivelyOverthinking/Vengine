@@ -7,10 +7,8 @@ import polars as pl
 from src.typings import ReaderConfig, InputType
 
 from typing import List, Optional, Tuple, Any, Dict
-from collections import deque
 from abc import abstractmethod
-from datetime import datetime, timezone
-from time import perf_counter
+
 
 # ---------------------------------------------------------------
 # BASEREADER CLASS -> ABSTRACTION
@@ -20,21 +18,27 @@ class BaseReader():
 
     __slots__ = ("_built", "_config")
 
-    def __init__(self, config):
+    def __init__(self):
         self._config = self._materialize_config()
         self._built = False
 
     @property
-    @abstractmethod
     def config(self) -> ReaderConfig:
         return self._config
+    
+    def build(self) -> None:
+        self._built = True
 
     @abstractmethod
     def _materialize_config(self) -> ReaderConfig:
         pass
 
     @abstractmethod
-    def _read_raw(self, input: InputType) -> pl.LazyFrame:
+    def _collect_metadata(self, input: pl.LazyFrame) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
         pass
 
     def _canonicalize(self, input: Any) -> pl.LazyFrame:
@@ -51,10 +55,15 @@ class BaseReader():
             return input
         
     def __str__(self):
-        return f"Type={type(self).__name__}, Config=({self._config})"
+        return f"Type={type(self).__name__}, Config=({self._canonicalize(self._config.parameters)})"
     
     def __bool__(self):
         return self._built
+    
+    def __eq__(self, value):
+        if not isinstance(value, BaseReader):
+            return False
+        return self._config == value._config
 
     def __hash__(self):
-        return hash((type(self), self._canonicalize(self._config)))
+        return hash((type(self), self._canonicalize(self._config.parameters)))

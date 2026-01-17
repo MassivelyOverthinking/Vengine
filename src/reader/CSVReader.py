@@ -77,7 +77,7 @@ class CSVReader(BaseReader):
             }
         )
 
-    def _read_raw(self, input: InputType) -> LazyFrame:
+    def _to_lazyframe(self, input: InputType) -> LazyFrame:
         df = pl.scan_csv(
             input,
             sep=self.separator,

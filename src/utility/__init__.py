@@ -3,7 +3,6 @@
 # ---------------------------------------------------------------
 
 from .formatting_lists import (retrieve_conduit_severity, retrieve_return_format)
-from .typings import (DataTable, InputType)
 from .setup_logger import get_class_logger
 
 # ---------------------------------------------------------------
@@ -11,8 +10,6 @@ from .setup_logger import get_class_logger
 # ---------------------------------------------------------------
 
 __all__ = [
-    "DataTable",
-    "InputType",
     "retrieve_conduit_severity",
     "retrieve_return_format",
     "get_class_logger",
