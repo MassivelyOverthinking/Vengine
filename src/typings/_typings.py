@@ -4,20 +4,18 @@
 
 import polars as pl
 
-
-from typing import List, Optional, Tuple, Any, Dict
-from collections import deque
-from abc import abstractmethod
-from datetime import datetime, timezone
-from time import perf_counter
+from dataclasses import dataclass
+from io import StringIO, BytesIO
+from os import PathLike
+from typing import Any, Mapping, Union
 
 # ---------------------------------------------------------------
-# BASEREADER CLASS -> ABSTRACTION
+# CUSTOM DATA TYPES
 # ---------------------------------------------------------------
 
-class BaseReader():
+@dataclass(frozen=True)
+class ReaderConfig:
+    parameters: Mapping[str, Any]
 
-    __slots__ = ("")
+InputType = Union[str, PathLike, StringIO, BytesIO]
 
-    def __init__(self,):
-        pass

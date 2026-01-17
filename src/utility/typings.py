@@ -11,12 +11,5 @@ from os import PathLike
 
 from typing import Union
 
-# ---------------------------------------------------------------
-# CUSTOM TYPES
-# ---------------------------------------------------------------
-
-# Custom Data type -> Reader output format
-DataTable = Union[pd_DataFrame, pl_DataFrame, pa_Table]
-
 # Custom Input type -> Reader input format
 InputType = Union[str, PathLike, StringIO, BytesIO]
