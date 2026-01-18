@@ -5,6 +5,7 @@
 import polars as pl
 
 from src.typings import ReaderConfig, ReaderPlan, InputType
+from src.utility.setup_logger import get_class_logger
 
 from typing import List, Optional, Tuple, Any, Dict, Hashable
 from abc import abstractmethod
@@ -16,12 +17,13 @@ from abc import abstractmethod
 
 class BaseReader():
 
-    __slots__ = ("_built", "_config", "_schema")
+    __slots__ = ("_built", "_config", "_schema", "_logger")
 
-    def __init__(self):
+    def __init__(self, verbosity: int = 0) -> None:
         self._config = self._materialize_config()
         self._built = False
         self._schema = None
+        self._logger = get_class_logger(self.__class__, verbosity)
 
     @property
     def config(self) -> ReaderConfig:
@@ -90,7 +92,7 @@ class BaseReader():
             lf = self._to_lazyframe(input)
 
             self._validate_schema(lf)
-            
+
             return lf
 
     def _signature(self) -> Hashable:
