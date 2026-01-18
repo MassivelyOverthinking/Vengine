@@ -25,8 +25,34 @@ class BaseReader():
     @property
     def config(self) -> ReaderConfig:
         return self._config
+
+    @property
+    def is_built(self) -> bool:
+        return self._built
+    
+    def _assert_built(self) -> bool:
+        if not self._built:
+            raise RuntimeError(
+                f"Reader of type {type(self).__name__} is not built. "
+                "Please call the 'build' method before using it."
+            )
+        
+        return True
+    
+    def _assert_not_built(self) -> bool:
+        if self._built:
+            raise RuntimeError(
+                f"Reader of type {type(self).__name__} is already built. "
+                "Please create a new instance to modify its configuration."
+            )
+        
+        return True
     
     def build(self) -> None:
+
+        if self._built:
+            return
+
         self._built = True
 
     @abstractmethod
