@@ -16,15 +16,31 @@ from abc import abstractmethod
 
 class BaseReader():
 
-    __slots__ = ("_built", "_config")
+    __slots__ = ("_built", "_config", "_schema")
 
     def __init__(self):
         self._config = self._materialize_config()
         self._built = False
+        self._schema = None
 
     @property
     def config(self) -> ReaderConfig:
         return self._config
+    
+    @property
+    def schema(self) -> Optional[pl.Schema]:
+        if self._assert_built():
+            return self._schema
+        
+    @property
+    def columns(self) -> Tuple[str, ...]:
+        if self._assert_built():
+            return tuple(self._schema.keys())
+
+    @property
+    def dtypes(self) -> Dict[str, pl.DataType]:
+        if self._assert_built():
+            return dict(self._schema.items())
 
     @property
     def is_built(self) -> bool:
@@ -48,11 +64,24 @@ class BaseReader():
         
         return True
     
+    @abstractmethod
+    def _discover_schema(self, input: InputType) -> pl.Schema:
+        pass
+    
     def build(self) -> None:
 
         if self._built:
             return
+        
+        schema = self._discover_schema(None)
 
+        if not isinstance(schema, pl.Schema):
+            raise TypeError(
+                f"Schema discovery method must return a polars.Schema object, "
+                f"got {type(schema).__name__} instead."
+            )
+        
+        self._schema = schema
         self._built = True
 
     @abstractmethod
