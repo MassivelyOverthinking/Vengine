@@ -4,9 +4,9 @@
 
 import polars as pl
 
-from src.typings import ReaderConfig, InputType
+from src.typings import ReaderConfig, ReaderPlan, InputType
 
-from typing import List, Optional, Tuple, Any, Dict
+from typing import List, Optional, Tuple, Any, Dict, Hashable
 from abc import abstractmethod
 
 
@@ -84,6 +84,15 @@ class BaseReader():
         self._schema = schema
         self._built = True
 
+    def _plan_signature(self) -> Hashable:
+        if self._assert_built():
+            
+            return ReaderPlan(
+                type(self),
+                self._canonicalize(self._config.parameters),
+                tuple(self._schema.items()),
+            )
+
     @abstractmethod
     def _materialize_config(self) -> ReaderConfig:
         pass
@@ -115,10 +124,10 @@ class BaseReader():
     def __bool__(self):
         return self._built
     
-    def __eq__(self, value):
-        if not isinstance(value, BaseReader):
+    def __eq__(self, other):
+        if not isinstance(other, BaseReader):
             return False
-        return self._config == value._config
+        return self._plan_signature() == other._plan_signature()
 
     def __hash__(self):
-        return hash((type(self), self._canonicalize(self._config.parameters)))
+        return hash(self._plan_signature())
