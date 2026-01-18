@@ -156,5 +156,17 @@ class BaseReader():
             return False
         return self._signature() == other._signature()
 
+    def __copy__(self):
+
+        cls = self.__class__
+        new_obj = cls.__new__(cls)
+        new_obj._config = self._config
+        new_obj._built = self._built
+        new_obj._logger = self._logger
+        if hasattr(self, '_schema'):
+            new_obj._schema = self._schema
+
+        return new_obj
+
     def __hash__(self):
         return hash(self._signature())
