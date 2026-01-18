@@ -84,7 +84,16 @@ class BaseReader():
         self._schema = schema
         self._built = True
 
-    def _plan_signature(self) -> Hashable:
+    def execute(self, input: InputType) -> pl.LazyFrame:
+        if self._assert_built():
+
+            lf = self._to_lazyframe(input)
+
+            self._validate_schema(lf)
+            
+            return lf
+
+    def _signature(self) -> Hashable:
         if self._assert_built():
             
             return ReaderPlan(
@@ -92,6 +101,22 @@ class BaseReader():
                 self._canonicalize(self._config.parameters),
                 tuple(self._schema.items()),
             )
+        
+    def _validate_schema(self, lf: pl.LazyFrame) -> None:
+        
+        if self._assert_built():
+            actual_schema = lf.schema
+
+            for col, type in self._schema.items():
+                if col not in actual_schema:
+                    raise ValueError(
+                        f"Column '{col}' is missing from the input data."
+                    )
+                if actual_schema[col] != type:
+                    raise TypeError(
+                        f"Column '{col}' has type '{actual_schema[col]}', "
+                        f"expected type '{type}'."
+                    )
 
     @abstractmethod
     def _materialize_config(self) -> ReaderConfig:
@@ -127,7 +152,7 @@ class BaseReader():
     def __eq__(self, other):
         if not isinstance(other, BaseReader):
             return False
-        return self._plan_signature() == other._plan_signature()
+        return self._signature() == other._signature()
 
     def __hash__(self):
-        return hash(self._plan_signature())
+        return hash(self._signature())
