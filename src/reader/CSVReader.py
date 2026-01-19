@@ -44,9 +44,9 @@ class CSVReader(BaseReader):
         n_rows: Optional[int] = None,
         try_parse_dates: bool = True,
         low_memory: bool = True,
-        **base_kwargs,
+        verbosity: int = 0,
     ):
-        super().__init__(**base_kwargs)
+        super().__init__(verbosity=verbosity)
 
         self.separator = separator
         self.header = 0 if header else None
@@ -76,9 +76,9 @@ class CSVReader(BaseReader):
                 "low_memory": self.low_memory
             }
         )
-
-    def _to_lazyframe(self, input: InputType) -> LazyFrame:
-        df = pl.scan_csv(
+    
+    def _discover_schema(self, input: InputType = None) -> pl.Schema:
+        lf = pl.scan_csv(
             input,
             sep=self.separator,
             has_header=self.header is not None,
@@ -93,5 +93,28 @@ class CSVReader(BaseReader):
             low_memory=self.low_memory,
         ).lazy()
 
-        return df
+        schema = lf.schema
+        self._logger.info(f"Schema initialized: {schema}")
+
+        return schema
+
+    def _to_lazyframe(self, input: InputType) -> LazyFrame:
+        lf = pl.scan_csv(
+            input,
+            sep=self.separator,
+            has_header=self.header is not None,
+            skip_rows=self.skip_rows,
+            skip_rows_after_header=self.skip_lines,
+            encoding=self.encoding,
+            null_values=self.null_values,
+            columns=self.use_columns,
+            dtypes=self.data_types,
+            n_rows=self.n_rows,
+            try_parse_dates=self.try_parse_dates,
+            low_memory=self.low_memory,
+        ).lazy()
+
+        self._logger.info(f"Data succesfully loaded into LazyFrame.")
+
+        return lf
     
