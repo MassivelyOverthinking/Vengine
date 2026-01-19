@@ -157,9 +157,32 @@ class BaseReader():
             return tuple(sorted(self._canonicalize(item) for item in input))
         else:
             return input
+
+    def reset(self) -> None:
+        self._built = False
+        self._schema = None
+
+    def __repr__(self):
+        built_str = "Built" if self._built else "Not Built"
+        schema_str = dict(self._schema) if self._schema else None
+
+        return (f"{type(self).__name__}({built_str}, "
+                f"Config={self._canonicalize(self._config.parameters)}, "
+                f"Schema={schema_str})"
+        )
         
     def __str__(self):
         return f"Type={type(self).__name__}, Config=({self._canonicalize(self._config.parameters)})"
+    
+    def __len__(self):
+        if self._built and self._schema:
+            return len(self._schema)
+        return 0
+
+    def __iter__(self):
+        if self._built and self._schema:
+            return iter(self._schema.keys())
+        return iter(())
     
     def __bool__(self):
         return self._built
