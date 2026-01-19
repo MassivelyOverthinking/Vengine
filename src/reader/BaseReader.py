@@ -71,6 +71,12 @@ class BaseReader():
     @abstractmethod
     def _discover_schema(self, input: InputType) -> pl.Schema:
         pass
+
+    def has_column(self, column: str) -> bool:
+        return self._built and column in self._schema
+    
+    def column_types(self) -> Dict[str, pl.DataType]:
+        return dict(self._schema) if self._built else {}
     
     def build(self) -> None:
 
@@ -103,6 +109,17 @@ class BaseReader():
                 f"Reader: {type(self).__name__} executed successfully."
             )
             return lf
+        
+    def summary(self, input: InputType, n: int = 5) -> pl.DataFrame:
+
+        lf = self.execute(input)
+        df_summary = lf.head(n=n).collect()
+
+        self._logger.info(
+            f"Reader: {type(self).__name__} summary generated successfully."
+        )
+        
+        return df_summary
 
     def _signature(self) -> Hashable:
         if self._assert_built():

@@ -45,8 +45,9 @@ class CSVReader(BaseReader):
         try_parse_dates: bool = True,
         low_memory: bool = True,
         verbosity: int = 0,
+        **base_kwargs,
     ):
-        super().__init__(verbosity=verbosity)
+        super().__init__(verbosity=verbosity, **base_kwargs)
 
         self.separator = separator
         self.header = 0 if header else None
