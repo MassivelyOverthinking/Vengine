@@ -50,19 +50,21 @@ class BaseReader():
     
     def _assert_built(self) -> bool:
         if not self._built:
-            raise RuntimeError(
-                f"Reader of type {type(self).__name__} is not built. "
-                "Please call the 'build' method before using it."
-            )
+            error_str = f"Reader: {type(self).__name__} is not constructed." \
+                        "Please call the 'build' method before using it."
+            
+            self._logger.error(error_str)
+            raise RuntimeError(error_str)
         
         return True
     
     def _assert_not_built(self) -> bool:
         if self._built:
-            raise RuntimeError(
-                f"Reader of type {type(self).__name__} is already built. "
-                "Please create a new instance to modify its configuration."
-            )
+            error_str = f"Reader: {type(self).__name__} is already constructed." \
+                        "Please create a new instance to modify its configuration."
+            
+            self._logger.error(error_str)
+            raise RuntimeError(error_str)
         
         return True
     
@@ -78,13 +80,17 @@ class BaseReader():
         schema = self._discover_schema(None)
 
         if not isinstance(schema, pl.Schema):
-            raise TypeError(
-                f"Schema discovery method must return a polars.Schema object, "
-                f"got {type(schema).__name__} instead."
-            )
+            error_str = f"Schema discovery method must return a polars.Schema object." \
+                        f"Received {type(schema).__name__} instead."
+            
+            self._logger.error(error_str)
+            raise TypeError(error_str)
         
         self._schema = schema
         self._built = True
+        self._logger.info(
+            f"Reader: {type(self).__name__} built successfully with schema: {self._schema}"
+        )
 
     def execute(self, input: InputType) -> pl.LazyFrame:
         if self._assert_built():
@@ -93,6 +99,9 @@ class BaseReader():
 
             self._validate_schema(lf)
 
+            self._logger.info(
+                f"Reader: {type(self).__name__} executed successfully."
+            )
             return lf
 
     def _signature(self) -> Hashable:
@@ -119,6 +128,10 @@ class BaseReader():
                         f"Column '{col}' has type '{actual_schema[col]}', "
                         f"expected type '{type}'."
                     )
+        
+        self._logger.info(
+            f"Schema validation passed for reader: {type(self).__name__}."
+        )
 
     @abstractmethod
     def _materialize_config(self) -> ReaderConfig:
