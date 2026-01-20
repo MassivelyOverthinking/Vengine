@@ -2,11 +2,9 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-import pandas as pd
 import polars as pl
-import pyarrow as pa
 
-from typing import List, Optional, Any
+from typing import Optional
 
 from src.reader import BaseReader
 from src.typings import ReaderConfig, InputType
