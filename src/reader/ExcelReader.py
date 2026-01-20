@@ -2,10 +2,9 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-import pandas as pd
 import polars as pl
 
-from typing import List, Union, Optional, Any
+from typing import List, Union, Optional
 
 from src.reader import BaseReader
 from src.typings import ReaderConfig, InputType
