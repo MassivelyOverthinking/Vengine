@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import List, Optional, Tuple, Any
+from typing import Optional
 
 from src.reader import BaseReader
 from src.typings import ReaderConfig, InputType

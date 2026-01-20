@@ -88,6 +88,7 @@ Implement concrete Reader classes for core data file formats that produce valid 
 - [x] Support multiple data sources (e.g. files, in-memory, connectors)
 - [ ] Validate reader output schema early
 - [x] Enforce LazyFrame-only output
+- [ ] Convert Reards to use customm Schema instead of Polars-native
 
 ---
 
