@@ -8,7 +8,7 @@ from typing import List, Optional, Union, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
-from src.typings import ReaderConfig, ReaderSchema, InputType
+from src.typings import ReaderConfig, InputType
 
 # ---------------------------------------------------------------
 # CSVREADER CLASS
@@ -46,12 +46,12 @@ class CSVReader(BaseReader):
         n_rows: Optional[int] = None,
         low_memory: bool = True,
         discover_schema: bool = False,
-        discover_rows: int = 1000,
+        discover_rows: int = 10,
         verbosity: int = 0,
         **base_kwargs,
     ):
         if schema is not None and discover_schema:
-            raise ValueError(f"Please provide either an explicit ReaderSchema or enable discover_schema - Not both!")
+            raise ValueError(f"Please provide either an explicit polars.Schema or enable discover_schema - Not both!")
         
         super().__init__(verbosity=verbosity, **base_kwargs)
 

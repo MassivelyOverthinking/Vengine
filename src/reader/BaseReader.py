@@ -7,7 +7,7 @@ import polars as pl
 from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, InputType
 from src.utility.setup_logger import get_class_logger
 
-from typing import List, Optional, Tuple, Any, Dict, Hashable
+from typing import Optional, Tuple, Any, Dict, Hashable
 from abc import abstractmethod
 
 
