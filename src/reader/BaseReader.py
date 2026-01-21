@@ -30,7 +30,7 @@ class BaseReader():
         return self._config
     
     @property
-    def schema(self) -> Optional[pl.Schema]:
+    def schema(self) -> Optional[ReaderSchema]:
         if self._assert_built():
             return self._schema
         
@@ -85,7 +85,7 @@ class BaseReader():
         
         schema = self._discover_schema(None)
 
-        if not isinstance(schema, pl.Schema):
+        if not isinstance(schema, ReaderSchema):
             error_str = f"Schema discovery method must return a polars.Schema object." \
                         f"Received {type(schema).__name__} instead."
             
@@ -131,20 +131,20 @@ class BaseReader():
             )
         
     def _validate_schema(self, lf: pl.LazyFrame) -> None:
-        
-        if self._assert_built():
-            actual_schema = lf.schema
+        expexted_schema = lf.schema
+        actual_schema: pl.Schema = self._schema
 
-            for col, type in self._schema.items():
-                if col not in actual_schema:
-                    raise ValueError(
-                        f"Column '{col}' is missing from the input data."
-                    )
-                if actual_schema[col] != type:
-                    raise TypeError(
-                        f"Column '{col}' has type '{actual_schema[col]}', "
-                        f"expected type '{type}'."
-                    )
+        missing_cols = expexted_schema.keys() - actual_schema.keys()
+
+        if missing_cols:
+            raise ValueError(f"Missins columns: {sorted(missing_cols)}")
+        
+        for column, type in expexted_schema.items():
+            exp_type = actual_schema[column]
+            if exp_type != type:
+                raise TypeError(
+                    f"Column: {column} has data type: {exp_type} - Expected type: {type}"
+                )
         
         self._logger.info(
             f"Schema validation passed for reader: {type(self).__name__}."

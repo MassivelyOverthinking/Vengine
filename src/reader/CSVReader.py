@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import List, Optional, Any
+from typing import List, Optional, Union, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
@@ -17,7 +17,7 @@ from src.typings import ReaderConfig, ReaderSchema, InputType
 class CSVReader(BaseReader):
 
     __slots__ = (
-        "dtypes",
+        "schema",
         "seperator",
         "header",
         "skip_rows",
@@ -27,15 +27,15 @@ class CSVReader(BaseReader):
         "use_columnns",
         "data_types",
         "n_rows",
-        "try_parse_dates",
         "low_memory",
-        "schema"
+        "discover_schema",
+        "discover_rows"
     )
 
     def __init__(
         self,
         *,
-        dtypes: dict[str, pl.DataType] = None,
+        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
         separator: str = ",",
         header: Optional[bool] = True,
         skip_rows: int = 0,
@@ -43,16 +43,19 @@ class CSVReader(BaseReader):
         encoding: str = "utf-8",
         null_values: Optional[List[str]] = None,
         use_columns: Optional[List[str]] = None,
-        data_types: Optional[dict[str, Any]] = None,
         n_rows: Optional[int] = None,
-        try_parse_dates: bool = True,
         low_memory: bool = True,
+        discover_schema: bool = False,
+        discover_rows: int = 1000,
         verbosity: int = 0,
         **base_kwargs,
     ):
+        if schema is not None and discover_schema:
+            raise ValueError(f"Please provide either an explicit ReaderSchema or enable discover_schema - Not both!")
+        
         super().__init__(verbosity=verbosity, **base_kwargs)
 
-        self.dtypes = dtypes
+        self.schema = schema
         self.separator = separator
         self.header = 0 if header else None
         self.skip_rows = skip_rows
@@ -60,11 +63,18 @@ class CSVReader(BaseReader):
         self.encoding = encoding
         self.null_values = null_values
         self.use_columns = use_columns
-        self.data_types = data_types
         self.n_rows = n_rows
-        self.try_parse_dates = try_parse_dates
         self.low_memory = low_memory
-        self.schema = None
+        self.discover_schema = discover_schema
+        self.discver_rows = discover_rows
+
+    def discover(self, input: InputType) -> None:
+        if self._assert_not_built:
+            self.schema = self._discover_schema_from_sample(input=input)
+
+        self._logger.info(
+            f"CSVReader: Internal schema successfully discovered: {self.schema}"
+        )
 
     def _materialize_config(self) -> ReaderConfig:
         return ReaderConfig(
@@ -77,32 +87,26 @@ class CSVReader(BaseReader):
                 "encoding": self.encoding,
                 "null_values": self.null_values,
                 "use_columns": self.use_columns,
-                "data_types": self.data_types,
                 "n_rows": self.n_rows,
-                "try_parse_dates": self.try_parse_dates,
                 "low_memory": self.low_memory
             }
         )
-    
-    def _discover_schema(self, input: InputType) -> None:
-        
-        if self.dtypes is not None:
-            self.schema = self.dtypes
-        else:
 
-            sample = pl.read_csv(
-                input,
-                separator=self.separator,
-                n_rows=1,
-                encoding=self.encoding
-            )
+    def _discover_schema_from_sample(self, input: InputType) -> pl.Schema:
+        df = pl.scan_csv(
+            input,
+            n_rows=self.discver_rows,
+            infer_schema_length=self.discver_rows,
+            try_parse_dates=True
+        )
 
-        self.schema = {col: pl.Utf8 for col in sample.columns}
+        return df.schema
+
 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
 
-        if self.schema is None:
-            self._discover_schema(input=input)
+        if isinstance(self.schema, dict):
+            self.schema = pl.Schema(self.schema)
 
         lf = pl.scan_csv(
             input,
@@ -114,17 +118,10 @@ class CSVReader(BaseReader):
             encoding=self.encoding,
             null_values=self.null_values,
             columns=self.use_columns,
-            dtypes=self.data_types,
             n_rows=self.n_rows,
             try_parse_dates=False,
             low_memory=self.low_memory,
         )
-
-        missing_columns = [col for col in self.schema if col not in lf.columns]
-        if missing_columns:
-            raise ValueError(
-                f"{self.__class__.__name__}: Missing expected columns - {missing_columns}"
-            )
 
         self._logger.info(f"Data succesfully loaded into LazyFrame.")
 
