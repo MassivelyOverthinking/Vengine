@@ -2,7 +2,7 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-from ._typings import (InputType, ReaderConfig, ReaderPlan)
+from ._typings import (InputType, ReaderConfig, ReaderPlan, ReaderSchema)
 
 # ---------------------------------------------------------------
 # PACKAGE MANAGEMENT
@@ -10,8 +10,9 @@ from ._typings import (InputType, ReaderConfig, ReaderPlan)
 
 __all__ = [
     "InputType",
-    "ReaderConfig"
+    "ReaderConfig",
     "ReaderPlan",
+    "ReaderSchema"
 ]
 __version__ = "0.0.1"
 __author__ = "HysingerDev"

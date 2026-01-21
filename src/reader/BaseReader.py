@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from src.typings import ReaderConfig, ReaderPlan, InputType
+from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, InputType
 from src.utility.setup_logger import get_class_logger
 
 from typing import List, Optional, Tuple, Any, Dict, Hashable
@@ -69,7 +69,7 @@ class BaseReader():
         return True
     
     @abstractmethod
-    def _discover_schema(self, input: InputType) -> pl.Schema:
+    def _discover_schema(self, input: InputType) -> ReaderSchema:
         pass
 
     def has_column(self, column: str) -> bool:
