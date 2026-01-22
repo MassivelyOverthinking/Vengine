@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
@@ -102,7 +102,6 @@ class CSVReader(BaseReader):
         )
 
         return df.schema
-
 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
 

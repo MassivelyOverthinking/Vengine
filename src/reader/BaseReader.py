@@ -9,6 +9,7 @@ from src.utility.setup_logger import get_class_logger
 
 from typing import Optional, Tuple, Any, Dict, Hashable
 from abc import abstractmethod
+from datetime import datetime
 from logging import Logger
 
 
@@ -41,9 +42,9 @@ class BaseReader():
             return tuple(self._schema.keys())
 
     @property
-    def dtypes(self) -> Dict[str, pl.DataType]:
+    def dtypes(self) -> Tuple[pl.DataType, ...]:
         if self._assert_built():
-            return dict(self._schema.items())
+            return tuple(self._schema.values())
 
     @property
     def is_built(self) -> bool:
@@ -68,10 +69,6 @@ class BaseReader():
             raise RuntimeError(error_str)
         
         return True
-    
-    @abstractmethod
-    def _discover_schema(self, input: InputType) -> ReaderSchema:
-        pass
 
     def has_column(self, column: str) -> bool:
         return self._built and column in self._schema
@@ -100,7 +97,7 @@ class BaseReader():
         )
 
     def execute(self, input: InputType) -> ReaderResult:
-        if self._assert_built() or not self._schema:
+        if self._assert_built():
 
             lf = self._to_lazyframe(input)
 
@@ -158,16 +155,27 @@ class BaseReader():
             f"Schema validation passed for reader: {type(self).__name__}."
         )
 
-    @abstractmethod
-    def _materialize_config(self) -> ReaderConfig:
-        pass
-
-    @abstractmethod
     def _collect_metadata(self, input: pl.LazyFrame) -> Dict[str, Any]:
-        pass
+        return {
+            "reader": self.__class__.__name__,
+            "built": self._built,
+            "configuration": self._config,
+            "schema": self._schema,
+            "datetime": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "exec_time": 0,
+            "success": True,
+        }
 
     @abstractmethod
     def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
+        pass
+
+    @abstractmethod
+    def _discover_schema(self, input: InputType) -> ReaderSchema:
+        pass
+
+    @abstractmethod
+    def _materialize_config(self) -> ReaderConfig:
         pass
 
     def _canonicalize(self, input: Any) -> pl.LazyFrame:
