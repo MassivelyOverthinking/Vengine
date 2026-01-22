@@ -4,11 +4,12 @@
 
 import polars as pl
 
-from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, InputType
+from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, ReaderResult, InputType
 from src.utility.setup_logger import get_class_logger
 
 from typing import Optional, Tuple, Any, Dict, Hashable
 from abc import abstractmethod
+from logging import Logger
 
 
 # ---------------------------------------------------------------
@@ -20,10 +21,10 @@ class BaseReader():
     __slots__ = ("_built", "_config", "_schema", "_logger")
 
     def __init__(self, verbosity: int = 0) -> None:
-        self._config = self._materialize_config()
-        self._built = False
-        self._schema = None
-        self._logger = get_class_logger(self.__class__, verbosity)
+        self._config: ReaderConfig   = self._materialize_config()
+        self._built: bool            = False
+        self._schema: pl.Schema      = None
+        self._logger: Logger         = get_class_logger(self.__class__, verbosity)
 
     @property
     def config(self) -> ReaderConfig:
@@ -98,28 +99,35 @@ class BaseReader():
             f"Reader: {type(self).__name__} built successfully with schema: {self._schema}"
         )
 
-    def execute(self, input: InputType) -> pl.LazyFrame:
-        if self._assert_built():
+    def execute(self, input: InputType) -> ReaderResult:
+        if self._assert_built() or not self._schema:
 
             lf = self._to_lazyframe(input)
 
             self._validate_schema(lf)
 
+            metadata = self._collect_metadata(input=input)
+
             self._logger.info(
                 f"Reader: {type(self).__name__} executed successfully."
             )
-            return lf
+            return ReaderResult(
+                frame=lf,
+                schema=self._schema,
+                metadata=metadata
+            )
         
     def summary(self, input: InputType, n: int = 5) -> pl.DataFrame:
+        if self._assert_built():
 
-        lf = self.execute(input)
-        df_summary = lf.head(n=n).collect()
+            lf = self.execute(input)
+            df_summary = lf.head(n=n).collect()
 
-        self._logger.info(
-            f"Reader: {type(self).__name__} summary generated successfully."
-        )
+            self._logger.info(
+                f"Reader: {type(self).__name__} summary generated successfully."
+            )
         
-        return df_summary
+            return df_summary
 
     def _signature(self) -> Hashable:
         if self._assert_built():
@@ -131,8 +139,8 @@ class BaseReader():
             )
         
     def _validate_schema(self, lf: pl.LazyFrame) -> None:
-        expexted_schema = lf.schema
-        actual_schema: pl.Schema = self._schema
+        expexted_schema: pl.Schema  = lf.schema
+        actual_schema: pl.Schema    = self._schema
 
         missing_cols = expexted_schema.keys() - actual_schema.keys()
 
@@ -176,8 +184,9 @@ class BaseReader():
             return input
 
     def reset(self) -> None:
-        self._built = False
-        self._schema = None
+        if self._assert_built():
+            self._built = False
+            self._schema = None
 
     def __repr__(self):
         built_str = "Built" if self._built else "Not Built"

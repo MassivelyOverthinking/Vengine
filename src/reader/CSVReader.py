@@ -71,6 +71,7 @@ class CSVReader(BaseReader):
     def discover(self, input: InputType) -> None:
         if self._assert_not_built:
             self.schema = self._discover_schema_from_sample(input=input)
+            self._config = self._materialize_config()
 
         self._logger.info(
             f"CSVReader: Internal schema successfully discovered: {self.schema}"

@@ -18,6 +18,12 @@ class ReaderConfig:
     parameters: Mapping[str, Any]
 
 @dataclass(frozen=True, slots=True)
+class ReaderResult:
+    frame: pl.LazyFrame
+    schema: pl.Schema
+    metadata: Dict[str, Any]
+
+@dataclass(frozen=True, slots=True)
 class ReaderPlan:
     return_type: type
     schema: Tuple[Tuple[str, pl.DataType], ...]
