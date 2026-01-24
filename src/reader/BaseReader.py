@@ -7,9 +7,10 @@ import polars as pl
 from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, ReaderResult, InputType
 from src.utility.setup_logger import get_class_logger
 
-from typing import Optional, Tuple, Any, Dict, Hashable
+from typing import Tuple, Any, Dict, Hashable
 from abc import abstractmethod
 from datetime import datetime
+from time import perf_counter
 from logging import Logger
 
 
@@ -32,7 +33,7 @@ class BaseReader():
         return self._config
     
     @property
-    def schema(self) -> Optional[ReaderSchema]:
+    def schema(self) -> pl.Schema:
         if self._assert_built():
             return self._schema
         
@@ -45,10 +46,26 @@ class BaseReader():
     def dtypes(self) -> Tuple[pl.DataType, ...]:
         if self._assert_built():
             return tuple(self._schema.values())
+        
+    @property
+    def column_types(self) -> Dict[str, pl.DataType]:
+        return dict(self._schema) if self._built else {}
 
     @property
     def is_built(self) -> bool:
         return self._built
+    
+    @abstractmethod
+    def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
+        pass
+
+    @abstractmethod
+    def _discover_schema(self, input: InputType) -> ReaderSchema:
+        pass
+
+    @abstractmethod
+    def _materialize_config(self) -> ReaderConfig:
+        pass
     
     def _assert_built(self) -> bool:
         if not self._built:
@@ -71,14 +88,22 @@ class BaseReader():
         return True
 
     def has_column(self, column: str) -> bool:
-        return self._built and column in self._schema
-    
-    def column_types(self) -> Dict[str, pl.DataType]:
-        return dict(self._schema) if self._built else {}
+        if not self._built:
+            self._logger(f"Reader: {type(self).__name__} is not constructed!")
+            return False
+        
+        column = column.lower()
+        if column in self._schema:
+            self._logger(f"Column: {column} found in Reader: {type(self).__name__}")
+            return True
+        
+        self._logger(f"Column: {column} not found in Reader: {type(self).__name__}")
+        return False
     
     def build(self) -> None:
 
         if self._built:
+            self._logger(f"Reader: {type(self).__name__} is already constructed!")
             return
         
         schema = self._discover_schema(None)
@@ -98,16 +123,24 @@ class BaseReader():
 
     def execute(self, input: InputType) -> ReaderResult:
         if self._assert_built():
+            start_time = perf_counter()
 
-            lf = self._to_lazyframe(input)
+            try:
+                lf = self._to_lazyframe(input)
 
-            self._validate_schema(lf)
+                self._validate_schema(lf)
+            except Exception as err:
+                end_time = perf_counter()
+                final_time = end_time - start_time
+                metadata = self._collect_metadata(input=input, time=final_time, success=False)
+                self._logger(f"Reader: {type(self).__name__} execution was unsuccessful.")
+                raise err
 
-            metadata = self._collect_metadata(input=input)
+            end_time = perf_counter()
+            final_time = end_time - start_time
+            metadata = self._collect_metadata(input=input, time=final_time, success=False)
 
-            self._logger.info(
-                f"Reader: {type(self).__name__} executed successfully."
-            )
+            self._logger.info(f"Reader: {type(self).__name__} executed successfully.")
             return ReaderResult(
                 frame=lf,
                 schema=self._schema,
@@ -117,23 +150,12 @@ class BaseReader():
     def summary(self, input: InputType, n: int = 5) -> pl.DataFrame:
         if self._assert_built():
 
-            lf = self.execute(input)
-            df_summary = lf.head(n=n).collect()
+            lf: pl.LazyFrame = self.execute(input)
+            df_summary: pl.DataFrame = lf.head(n=n).collect()
 
-            self._logger.info(
-                f"Reader: {type(self).__name__} summary generated successfully."
-            )
+            self._logger.info(f"Reader: {type(self).__name__} summary generated successfully.")
         
             return df_summary
-
-    def _signature(self) -> Hashable:
-        if self._assert_built():
-            
-            return ReaderPlan(
-                type(self),
-                self._canonicalize(self._config.parameters),
-                tuple(self._schema.items()),
-            )
         
     def _validate_schema(self, lf: pl.LazyFrame) -> None:
         expexted_schema: pl.Schema  = lf.schema
@@ -155,7 +177,7 @@ class BaseReader():
             f"Schema validation passed for reader: {type(self).__name__}."
         )
 
-    def _collect_metadata(self, input: pl.LazyFrame) -> Dict[str, Any]:
+    def _collect_metadata(self, input: pl.LazyFrame, time: float, success: bool) -> Dict[str, Any]:
         return {
             "reader": self.__class__.__name__,
             "built": self._built,
@@ -166,17 +188,14 @@ class BaseReader():
             "success": True,
         }
 
-    @abstractmethod
-    def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
-        pass
-
-    @abstractmethod
-    def _discover_schema(self, input: InputType) -> ReaderSchema:
-        pass
-
-    @abstractmethod
-    def _materialize_config(self) -> ReaderConfig:
-        pass
+    def _signature(self) -> Hashable:
+        if self._assert_built():
+            
+            return ReaderPlan(
+                return_type=type(self),
+                schema=self._canonicalize(self._config.parameters),
+                fingerprint=tuple(self._schema.items()),
+            )
 
     def _canonicalize(self, input: Any) -> pl.LazyFrame:
         if isinstance(input, dict):
@@ -211,11 +230,13 @@ class BaseReader():
     def __len__(self):
         if self._built and self._schema:
             return len(self._schema)
+        
         return 0
 
     def __iter__(self):
         if self._built and self._schema:
             return iter(self._schema.keys())
+        
         return iter(())
     
     def __bool__(self):
@@ -224,6 +245,7 @@ class BaseReader():
     def __eq__(self, other):
         if not isinstance(other, BaseReader):
             return False
+        
         return self._signature() == other._signature()
 
     def __copy__(self):
