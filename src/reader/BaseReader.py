@@ -89,15 +89,15 @@ class BaseReader():
 
     def has_column(self, column: str) -> bool:
         if not self._built:
-            self._logger(f"Reader: {type(self).__name__} is not constructed!")
+            self._logger.info(f"Reader: {type(self).__name__} is not constructed!")
             return False
         
         column = column.lower()
         if column in self._schema:
-            self._logger(f"Column: {column} found in Reader: {type(self).__name__}")
+            self._logger.info(f"Column: {column} found in Reader: {type(self).__name__}")
             return True
         
-        self._logger(f"Column: {column} not found in Reader: {type(self).__name__}")
+        self._logger.info(f"Column: {column} not found in Reader: {type(self).__name__}")
         return False
     
     def build(self) -> None:
@@ -106,14 +106,14 @@ class BaseReader():
             self._logger(f"Reader: {type(self).__name__} is already constructed!")
             return
         
-        schema = self._discover_schema(None)
-
-        if not isinstance(schema, ReaderSchema):
-            error_str = f"Schema discovery method must return a polars.Schema object." \
-                        f"Received {type(schema).__name__} instead."
+        if self._schema is None or not isinstance(self._schema, pl.Schema):
+            error_str = f"{self.__class__.__name__} currently holds no concrete Schema!" \
+                        f"Please add polars.Schema to the parameters or utilise '.discover'-method"
             
             self._logger.error(error_str)
-            raise TypeError(error_str)
+            raise ValueError(error_str)
+        
+        schema = self._discover_schema(None)
         
         self._schema = schema
         self._built = True
