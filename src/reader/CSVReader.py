@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader

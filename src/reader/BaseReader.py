@@ -5,7 +5,7 @@
 import polars as pl
 
 from src.typings import ReaderConfig, ReaderPlan, ReaderResult, InputType
-from src.errors import ReaderConfigError, ReaderSchemaError, ReaderExecutionError, ReaderBuildError
+from src.errors import ReaderSchemaError, ReaderBuildError
 from src.utility.setup_logger import get_class_logger
 
 from typing import Tuple, Any, Dict, Hashable, Union
@@ -13,7 +13,6 @@ from abc import abstractmethod
 from datetime import datetime
 from time import perf_counter
 from logging import Logger
-
 
 # ---------------------------------------------------------------
 # BASEREADER CLASS -> ABSTRACTION
@@ -49,6 +48,8 @@ class BaseReader():
         self._infer_rows: int        = infer_rows              
         self._logger: Logger         = get_class_logger(self.__class__, verbosity)
 
+# Class Properties --------------------------------------------------
+    
     @property
     def config(self) -> ReaderConfig:
         return self._config
@@ -80,6 +81,8 @@ class BaseReader():
     def is_built(self) -> bool:
         return self._built
     
+# Abstract Class Methods --------------------------------------------------
+    
     @abstractmethod
     def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
         pass
@@ -87,70 +90,56 @@ class BaseReader():
     @abstractmethod
     def _materialize_config(self) -> ReaderConfig:
         pass
-    
-    def _assert_built(self) -> bool:
-        if not self._built:
-            error_str = f"Reader: {type(self).__name__} is not constructed." \
-                        "Please call the 'build' method before using it."
-            
-            self._logger.error(error_str)
-            raise ReaderBuildError(error_str)
-        
-        return True
-    
-    def _assert_not_built(self) -> bool:
-        if self._built:
-            error_str = f"Reader: {type(self).__name__} is already constructed." \
-                        "Please create a new instance to modify its configuration."
-            
-            self._logger.error(error_str)
-            raise ReaderBuildError(error_str)
-        
-        return True
+
+# Core Class Operations --------------------------------------------------
 
     def has_column(self, column: str) -> bool:
         if not self._built:
+            # Ensure that the Reader-class is 'built'.
             self._logger.info(f"Reader: {type(self).__name__} is not constructed!")
             return False
         
-        column = column.lower()
+        column = column.lower()     # Ensure strings are formatted consistently.
         if column in self._schema:
+            # Determine if the specified column-string exists in Reader's Schema.
             self._logger.info(f"Column: {column} found in Reader: {type(self).__name__}")
             return True
         
         self._logger.info(f"Column: {column} not found in Reader: {type(self).__name__}")
-        return False
+        return False        # DEFAULT -> Returns 'False' if nothing no column matched. 
     
     def build(self, input: InputType = None) -> None:
 
         if self._built:
+            # If the Reader instance is already constructed return immediately.
             self._logger(f"Reader: {type(self).__name__} is already constructed!")
             return
         
-        self._schema = self._resolve_schema(input=input)
-        self._built = True
+        self._schema = self._resolve_schema(input=input)    # Resolve the internal Schema.
+        self._built = True                                  # Set Reader-intance as 'built'.
         self._logger.info(
             f"Reader: {type(self).__name__} built successfully with schema: {self._schema}"
         )
 
     def execute(self, input: InputType) -> ReaderResult:
         if self._assert_built():
+            # Raise error if Reader-instance is currently not 'built'.
             start_time = perf_counter()
 
             try:
-                lf = self._to_lazyframe(input)
+                lf = self._to_lazyframe(input)  # Convert input to Lazyframe
 
-                self._validate_schema(lf)
+                self._validate_schema(lf)       # Validate if the Lazyframe matches internal Schema. 
             except Exception as err:
-                end_time = perf_counter()
-                final_time = end_time - start_time
-                metadata = self._collect_metadata(input=input, time=final_time, success=False)
+                end_time = perf_counter()   
+                final_time = end_time - start_time  # Calculate execution time.
+                metadata = self._collect_metadata(input=input, time=final_time, success=False)  # Collect relevant metadata.
                 self._logger.error(f"Reader: {type(self).__name__} execution was unsuccessful.")
                 raise err
 
             end_time = perf_counter()
-            final_time = end_time - start_time
-            metadata = self._collect_metadata(input=input, time=final_time, success=True)
+            final_time = end_time - start_time      # Calculate execution time.
+            metadata = self._collect_metadata(input=input, time=final_time, success=True)   # Collect relevant metadata.
 
             self._logger.info(f"Reader: {type(self).__name__} executed successfully.")
             return ReaderResult(
@@ -183,6 +172,33 @@ class BaseReader():
         new_reader._logger = self._logger
 
         return new_reader
+    
+    def reset(self) -> None:
+        if self._assert_built():
+            self._built = False
+            self._schema = None
+    
+# Internal Helper-methods --------------------------------------------------
+
+    def _assert_built(self) -> bool:
+        if not self._built:
+            error_str = f"Reader: {type(self).__name__} is not constructed." \
+                        "Please call the 'build' method before using it."
+            
+            self._logger.error(error_str)
+            raise ReaderBuildError(error_str)
+        
+        return True
+    
+    def _assert_not_built(self) -> bool:
+        if self._built:
+            error_str = f"Reader: {type(self).__name__} is already constructed." \
+                        "Please create a new instance to modify its configuration."
+            
+            self._logger.error(error_str)
+            raise ReaderBuildError(error_str)
+        
+        return True
         
     def _resolve_schema(self, input: InputType) -> pl.Schema:
         if self._schema is not None:
@@ -256,10 +272,7 @@ class BaseReader():
         else:
             return input
 
-    def reset(self) -> None:
-        if self._assert_built():
-            self._built = False
-            self._schema = None
+# Class __dunder__-methods --------------------------------------------------
 
     def __repr__(self):
         built_str = "Built" if self._built else "Not Built"
