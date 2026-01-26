@@ -68,7 +68,6 @@ class CSVReader(BaseReader):
     def _materialize_config(self) -> ReaderConfig:
         return ReaderConfig(
             parameters={
-                "dtypes": self.dtypes,
                 "separator": self.separator,
                 "header": self.header,
                 "skip_rows": self.skip_rows,
@@ -85,7 +84,6 @@ class CSVReader(BaseReader):
 
         lf = pl.scan_csv(
             input,
-            dtypes=self.schema,
             sep=self.separator,
             has_header=self.header is not None,
             skip_rows=self.skip_rows,

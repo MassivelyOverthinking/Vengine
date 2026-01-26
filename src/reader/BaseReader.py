@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, ReaderResult, InputType
+from src.typings import ReaderConfig, ReaderPlan, ReaderResult, InputType
 from src.utility.setup_logger import get_class_logger
 
 from typing import Tuple, Any, Dict, Hashable, Union
@@ -35,6 +35,9 @@ class BaseReader():
         infer_rows: int = 100,
         verbosity: int = 0
     ) -> None:
+        if isinstance(schema, dict):
+            schema = pl.Schema(schema=schema)
+
         if schema is None and not infer_schema:
             raise ValueError(f"Please provide either an explicit polars.Schema or enable infer_schema - Not both!")
 
@@ -67,6 +70,10 @@ class BaseReader():
     @property
     def column_types(self) -> Dict[str, pl.DataType]:
         return dict(self._schema) if self._built else {}
+    
+    @property
+    def requires_input(self):
+        return self._schema is None and self._infer_schema
 
     @property
     def is_built(self) -> bool:
@@ -74,10 +81,6 @@ class BaseReader():
     
     @abstractmethod
     def _to_lazyframe(self, input: InputType) -> pl.LazyFrame:
-        pass
-
-    @abstractmethod
-    def _discover_schema(self, input: InputType) -> ReaderSchema:
         pass
 
     @abstractmethod
@@ -165,6 +168,21 @@ class BaseReader():
         
             return df_summary
         
+    def clone(self) -> "BaseReader":
+
+        cls = self.__class__
+
+        new_reader = cls.__new__(cls)
+
+        new_reader._config = self._config
+        new_reader._schema = self._schema
+        new_reader._built = self._built
+        new_reader._infer_schema = self._infer_schema
+        new_reader._infer_rows = self._infer_rows
+        new_reader._logger = self._logger
+
+        return new_reader
+        
     def _resolve_schema(self, input, InputType) -> pl.Schema:
         if self._schema is not None:
             return self._schema
@@ -246,10 +264,14 @@ class BaseReader():
         built_str = "Built" if self._built else "Not Built"
         schema_str = dict(self._schema) if self._schema else None
 
-        return (f"{type(self).__name__}({built_str}, "
-                f"Config={self._canonicalize(self._config.parameters)}, "
-                f"Schema={schema_str})"
+        return (
+            f"{self.__class__.__name__} - (",
+            f"{built_str}",
+            f"Schema={schema_str}" ,
+            f"Config={self._config.parameters}" ,
+            f")"
         )
+             
         
     def __str__(self):
         return f"Type={type(self).__name__}, Config=({self._canonicalize(self._config.parameters)})"
@@ -274,18 +296,6 @@ class BaseReader():
             return False
         
         return self._signature() == other._signature()
-
-    def __copy__(self):
-
-        cls = self.__class__
-        new_obj = cls.__new__(cls)
-        new_obj._config = self._config
-        new_obj._built = self._built
-        new_obj._logger = self._logger
-        if hasattr(self, '_schema'):
-            new_obj._schema = self._schema
-
-        return new_obj
 
     def __hash__(self):
         return hash(self._signature())

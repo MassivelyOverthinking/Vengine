@@ -29,9 +29,5 @@ class ReaderPlan:
     config: Tuple[Tuple[str, pl.DataType], ...]
     fingerprint: Hashable
 
-@dataclass(frozen=True, slots=True)
-class ReaderSchema:
-    schema: Dict[str, pl.DataType]
-
 InputType = Union[str, PathLike, StringIO, BytesIO]
 

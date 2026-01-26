@@ -2,7 +2,7 @@
 # IMPORTS
 # ---------------------------------------------------------------
 
-from ._typings import (InputType, ReaderConfig, ReaderPlan, ReaderSchema, ReaderResult)
+from ._typings import (InputType, ReaderConfig, ReaderPlan, ReaderResult)
 
 # ---------------------------------------------------------------
 # PACKAGE MANAGEMENT
@@ -12,7 +12,6 @@ __all__ = [
     "InputType",
     "ReaderConfig",
     "ReaderPlan",
-    "ReaderSchema",
     "ReaderResult"
 ]
 __version__ = "0.0.1"
