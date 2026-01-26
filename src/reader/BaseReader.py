@@ -183,7 +183,7 @@ class BaseReader():
 
         return new_reader
         
-    def _resolve_schema(self, input, InputType) -> pl.Schema:
+    def _resolve_schema(self, input: InputType) -> pl.Schema:
         if self._schema is not None:
             return self._schema
         
@@ -270,8 +270,7 @@ class BaseReader():
             f"Schema={schema_str}" ,
             f"Config={self._config.parameters}" ,
             f")"
-        )
-             
+        ) 
         
     def __str__(self):
         return f"Type={type(self).__name__}, Config=({self._canonicalize(self._config.parameters)})"
