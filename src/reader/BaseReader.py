@@ -117,22 +117,13 @@ class BaseReader():
         self._logger.info(f"Column: {column} not found in Reader: {type(self).__name__}")
         return False
     
-    def build(self) -> None:
+    def build(self, input: InputType = None) -> None:
 
         if self._built:
             self._logger(f"Reader: {type(self).__name__} is already constructed!")
             return
         
-        if self._schema is None or not isinstance(self._schema, pl.Schema):
-            error_str = f"{self.__class__.__name__} currently holds no concrete Schema!" \
-                        f"Please add polars.Schema to the parameters or utilise '.discover'-method"
-            
-            self._logger.error(error_str)
-            raise ValueError(error_str)
-        
-        schema = self._discover_schema(None)
-        
-        self._schema = schema
+        self._schema = self._resolve_schema(input=input)
         self._built = True
         self._logger.info(
             f"Reader: {type(self).__name__} built successfully with schema: {self._schema}"
@@ -174,16 +165,35 @@ class BaseReader():
         
             return df_summary
         
-    def _validate_schema(self, lf: pl.LazyFrame) -> None:
-        expexted_schema: pl.Schema  = lf.schema
-        actual_schema: pl.Schema    = self._schema
+    def _resolve_schema(self, input, InputType) -> pl.Schema:
+        if self._schema is not None:
+            return self._schema
+        
+        if self._infer_schema:
+            return self._resolve_schema_from_sample(input=input)
 
-        missing_cols = expexted_schema.keys() - actual_schema.keys()
+        raise ValueError(f"No concrete Schema provided and schema inference disabled!")
+    
+    def _resolve_schema_from_sample(self, input: InputType) -> pl.Schema:
+        df = pl.scan_csv(
+            input,
+            n_rows=self._infer_rows,
+            infer_schema_length=self._infer_rows,
+            try_parse_dates=True
+        )
+
+        return df.schema
+        
+    def _validate_schema(self, lf: pl.LazyFrame) -> None:
+        actual_schema: pl.Schema  = lf.schema
+        expected_schema: pl.Schema    = self._schema
+
+        missing_cols = expected_schema.keys() - actual_schema.keys()
 
         if missing_cols:
             raise ValueError(f"Missins columns: {sorted(missing_cols)}")
         
-        for column, type in expexted_schema.items():
+        for column, type in expected_schema.items():
             exp_type = actual_schema[column]
             if exp_type != type:
                 raise TypeError(
@@ -210,7 +220,7 @@ class BaseReader():
             
             return ReaderPlan(
                 return_type=type(self),
-                schema=self._canonicalize(self._config.parameters),
+                config=self._canonicalize(self._config.parameters),
                 fingerprint=tuple(self._schema.items()),
             )
 

@@ -26,7 +26,7 @@ class ReaderResult:
 @dataclass(frozen=True, slots=True)
 class ReaderPlan:
     return_type: type
-    schema: Tuple[Tuple[str, pl.DataType], ...]
+    config: Tuple[Tuple[str, pl.DataType], ...]
     fingerprint: Hashable
 
 @dataclass(frozen=True, slots=True)

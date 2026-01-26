@@ -65,15 +65,6 @@ class CSVReader(BaseReader):
         self.n_rows = n_rows
         self.low_memory = low_memory
 
-    def discover(self, input: InputType) -> None:
-        if self._assert_not_built:
-            self._schema = self._discover_schema_from_sample(input=input)
-            self._config = self._materialize_config()
-
-        self._logger.info(
-            f"{self.__class__.__name__}: Internal schema successfully discovered: {self.schema}"
-        )
-
     def _materialize_config(self) -> ReaderConfig:
         return ReaderConfig(
             parameters={
@@ -89,16 +80,6 @@ class CSVReader(BaseReader):
                 "low_memory": self.low_memory
             }
         )
-
-    def _discover_schema_from_sample(self, input: InputType) -> pl.Schema:
-        df = pl.scan_csv(
-            input,
-            n_rows=self.discver_rows,
-            infer_schema_length=self.discver_rows,
-            try_parse_dates=True
-        )
-
-        return df.schema
 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
 
