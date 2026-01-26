@@ -7,7 +7,7 @@ import polars as pl
 from src.typings import ReaderConfig, ReaderPlan, ReaderSchema, ReaderResult, InputType
 from src.utility.setup_logger import get_class_logger
 
-from typing import Tuple, Any, Dict, Hashable
+from typing import Tuple, Any, Dict, Hashable, Union
 from abc import abstractmethod
 from datetime import datetime
 from time import perf_counter
@@ -20,12 +20,29 @@ from logging import Logger
 
 class BaseReader():
 
-    __slots__ = ("_built", "_config", "_schema", "_logger")
+    __slots__ = (
+        "_built",
+        "_config",
+        "_schema",
+        "_infer_schema",
+        "_infer_rows",
+        "_logger")
 
-    def __init__(self, verbosity: int = 0) -> None:
+    def __init__(
+        self,
+        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        infer_schema: bool = False,
+        infer_rows: int = 100,
+        verbosity: int = 0
+    ) -> None:
+        if schema is None and not infer_schema:
+            raise ValueError(f"Please provide either an explicit polars.Schema or enable infer_schema - Not both!")
+
         self._config: ReaderConfig   = self._materialize_config()
         self._built: bool            = False
-        self._schema: pl.Schema      = None
+        self._schema: pl.Schema      = schema
+        self._infer_schema: bool     = infer_schema
+        self._infer_rows: int        = infer_rows              
         self._logger: Logger         = get_class_logger(self.__class__, verbosity)
 
     @property
@@ -133,12 +150,12 @@ class BaseReader():
                 end_time = perf_counter()
                 final_time = end_time - start_time
                 metadata = self._collect_metadata(input=input, time=final_time, success=False)
-                self._logger(f"Reader: {type(self).__name__} execution was unsuccessful.")
+                self._logger.error(f"Reader: {type(self).__name__} execution was unsuccessful.")
                 raise err
 
             end_time = perf_counter()
             final_time = end_time - start_time
-            metadata = self._collect_metadata(input=input, time=final_time, success=False)
+            metadata = self._collect_metadata(input=input, time=final_time, success=True)
 
             self._logger.info(f"Reader: {type(self).__name__} executed successfully.")
             return ReaderResult(

@@ -17,7 +17,6 @@ from src.typings import ReaderConfig, InputType
 class CSVReader(BaseReader):
 
     __slots__ = (
-        "schema",
         "seperator",
         "header",
         "skip_rows",
@@ -28,8 +27,6 @@ class CSVReader(BaseReader):
         "data_types",
         "n_rows",
         "low_memory",
-        "discover_schema",
-        "discover_rows"
     )
 
     def __init__(
@@ -45,17 +42,19 @@ class CSVReader(BaseReader):
         use_columns: Optional[List[str]] = None,
         n_rows: Optional[int] = None,
         low_memory: bool = True,
-        discover_schema: bool = False,
-        discover_rows: int = 10,
+        infer_schema: bool = False,
+        infer_rows: int = 100,
         verbosity: int = 0,
         **base_kwargs,
     ):
-        if schema is not None and discover_schema:
-            raise ValueError(f"Please provide either an explicit polars.Schema or enable discover_schema - Not both!")
-        
-        super().__init__(verbosity=verbosity, **base_kwargs)
+        super().__init__(
+            schema=schema,
+            infer_schema=infer_schema,
+            infer_rows=infer_rows,
+            verbosity=verbosity,
+            **base_kwargs
+        )
 
-        self.schema = schema
         self.separator = separator
         self.header = 0 if header else None
         self.skip_rows = skip_rows
@@ -65,8 +64,6 @@ class CSVReader(BaseReader):
         self.use_columns = use_columns
         self.n_rows = n_rows
         self.low_memory = low_memory
-        self.discover_schema = discover_schema
-        self.discver_rows = discover_rows
 
     def discover(self, input: InputType) -> None:
         if self._assert_not_built:
@@ -104,9 +101,6 @@ class CSVReader(BaseReader):
         return df.schema
 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
-
-        if isinstance(self.schema, dict):
-            self.schema = pl.Schema(self.schema)
 
         lf = pl.scan_csv(
             input,
