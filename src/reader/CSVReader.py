@@ -9,6 +9,7 @@ from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
 from src.typings import ReaderConfig, InputType
+from src.errors import ReaderConfigError
 
 # ---------------------------------------------------------------
 # CSVREADER CLASS
@@ -24,7 +25,7 @@ class CSVReader(BaseReader):
         "encoding",
         "null_values",
         "use_columnns",
-        "data_types",
+        "dtypes",
         "n_rows",
         "low_memory",
     )
@@ -33,6 +34,7 @@ class CSVReader(BaseReader):
         self,
         *,
         schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        dtypes: Optional[Dict[str, pl.Schema]] = None,
         separator: str = ",",
         header: Optional[bool] = True,
         skip_rows: int = 0,
@@ -62,6 +64,7 @@ class CSVReader(BaseReader):
         self.encoding = encoding
         self.null_values = null_values
         self.use_columns = use_columns
+        self.dtypes = dtypes
         self.n_rows = n_rows
         self.low_memory = low_memory
 
@@ -75,12 +78,23 @@ class CSVReader(BaseReader):
                 "encoding": self.encoding,
                 "null_values": self.null_values,
                 "use_columns": self.use_columns,
+                "dtypes": self.dtypes,
                 "n_rows": self.n_rows,
                 "low_memory": self.low_memory
             }
         )
 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
+
+        if self.dtypes:
+            if not isinstance(self.dtypes, dict):
+                raise ReaderConfigError(
+                    f"Data types must be a Dict[str, polars.Datatype] - Recieved {type(self.dtypes)}"
+                )
+            
+            dtypes = pl.Schema(self.dtypes)
+        else:
+            dtypes = self.schema
 
         lf = pl.scan_csv(
             input,
@@ -91,6 +105,7 @@ class CSVReader(BaseReader):
             encoding=self.encoding,
             null_values=self.null_values,
             columns=self.use_columns,
+            dtypes=dtypes,
             n_rows=self.n_rows,
             try_parse_dates=False,
             low_memory=self.low_memory,
