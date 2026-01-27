@@ -68,6 +68,7 @@ class CSVReader(BaseReader):
         self.n_rows = n_rows
         self.low_memory = low_memory
 
+    # Convert and return the internal configuration -> Used for _signature (Hashing).
     def _materialize_config(self) -> ReaderConfig:
         return ReaderConfig(
             parameters={
@@ -84,6 +85,7 @@ class CSVReader(BaseReader):
             }
         )
 
+    # Utilise Polars to read specified Data -> Wrapped in ReaderResult-class and returned to Conduit. 
     def _to_lazyframe(self, input: InputType) -> LazyFrame:
 
         if self.dtypes:
