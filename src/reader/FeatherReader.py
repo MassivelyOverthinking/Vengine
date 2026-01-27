@@ -18,6 +18,7 @@ from src.typings import ReaderConfig, InputType
 class FeatherReader(BaseReader):
 
     __slots__ = (
+        "schema",
         "n_rows",
         "cache",
         "rechunk",
