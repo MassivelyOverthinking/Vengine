@@ -182,21 +182,21 @@ class BaseReader():
 
     def _assert_built(self) -> bool:
         if not self._built:
-            error_str = f"Reader: {type(self).__name__} is not constructed." \
+            error_str = f"Reader-instance is currently not constructed." \
                         "Please call the 'build' method before using it."
             
             self._logger.error(error_str)
-            raise ReaderBuildError(error_str)
+            raise ReaderBuildError(self, error_str)
         
         return True
     
     def _assert_not_built(self) -> bool:
         if self._built:
-            error_str = f"Reader: {type(self).__name__} is already constructed." \
+            error_str = f"Reader-instance already constructed." \
                         "Please create a new instance to modify its configuration."
             
             self._logger.error(error_str)
-            raise ReaderBuildError(error_str)
+            raise ReaderBuildError(self, error_str)
         
         return True
         
@@ -207,7 +207,7 @@ class BaseReader():
         if self._infer_schema:
             return self._resolve_schema_from_sample(input=input)
 
-        raise ReaderSchemaError(f"No concrete Schema provided and schema inference disabled!")
+        raise ReaderSchemaError(self, "No concrete Schema provided and schema inference disabled!")
     
     def _resolve_schema_from_sample(self, input: InputType) -> pl.Schema:
         df = pl.scan_csv(
@@ -226,7 +226,7 @@ class BaseReader():
         missing_cols = expected_schema.keys() - actual_schema.keys()
 
         if missing_cols:
-            raise ReaderSchemaError(f"Missins columns: {sorted(missing_cols)}")
+            raise ReaderSchemaError(self, f"Missins columns: {sorted(missing_cols)}")
         
         for column, type in expected_schema.items():
             exp_type = actual_schema[column]

@@ -87,4 +87,5 @@ class ExcelReader(BaseReader):
         ).lazy()
 
         self._logger.info(f"Data succesfully loaded into LazyFrame.")
+        
         return lf

@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------
 
 from src.errors.exceptions import (ReaderError, ReaderConfigError, ReaderBuildError,
-    ReaderExecutionError, ReaderSchemaError
+    ReaderExecutionError, ReaderSchemaError, WaypointError, WaypointBuildError
 )
 
 # ---------------------------------------------------------------
@@ -15,7 +15,9 @@ __all__ = [
     "ReaderConfigError",
     "ReaderBuildError",
     "ReaderExecutionError",
-    "ReaderSchemaError"
+    "ReaderSchemaError",
+    "WaypointError",
+    "WaypointBuildError"
 ]
 __version__ = "0.0.1"
 __author__ = "HysingerDev"

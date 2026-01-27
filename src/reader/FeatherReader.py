@@ -74,6 +74,7 @@ class FeatherReader(BaseReader):
         if self.dtypes:
             if not isinstance(self.dtypes, dict):
                 raise ReaderConfigError(
+                    self,
                     f"Data types must be a Dict[str, polars.Datatype] - Recieved {type(self.dtypes)}"
                 )
             

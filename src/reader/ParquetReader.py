@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import Optional, Union, Dict
+from typing import Optional, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
@@ -70,6 +70,7 @@ class ParquetReader(BaseReader):
         if self.dtypes:
             if not isinstance(self.dtypes, dict):
                 raise ReaderConfigError(
+                    self,
                     f"Data types must be a Dict[str, polars.Datatype] - Recieved {type(self.dtypes)}"
                 )
             
