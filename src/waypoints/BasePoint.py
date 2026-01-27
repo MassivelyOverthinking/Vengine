@@ -51,7 +51,7 @@ class BasePoint():
 
     def _assert_built(self) -> bool:
         if not self._built:
-            error_str = f"Waypoint: {type(self).__name__} is not constructed." \
+            error_str = f"Waypoint-instance is currently not constructed." \
                         "Please call the 'build' method before using it."
             
             self._logger.error(error_str)
@@ -61,7 +61,7 @@ class BasePoint():
     
     def _assert_not_built(self) -> bool:
         if self._built:
-            error_str = f"Waypoint: {type(self).__name__} is already constructed." \
+            error_str = f"Waypoint-instance already constructed." \
                         "Please create a new instance to modify its configuration."
             
             self._logger.error(error_str)

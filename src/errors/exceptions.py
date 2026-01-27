@@ -9,6 +9,7 @@
 # Reader-related Exceptions --------------------------------------------------
 
 class ReaderError(Exception):
+    "Base Exception/Error (Template) for Reader-related Errors"
     pass
 
 class ReaderConfigError(ReaderError):
@@ -50,6 +51,7 @@ class ReaderExecutionError(ReaderError):
 # Waypoint-related Exceptions --------------------------------------------------
 
 class WaypointError(Exception):
+    "Base Exception/Error (Template) for Waypoint-related Errors"
     pass
 
 class WaypointBuildError(WaypointError):
