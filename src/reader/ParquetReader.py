@@ -28,7 +28,7 @@ class ParquetReader(BaseReader):
     def __init__(
         self,
         *,
-        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        schema: Dict[str, pl.DataType] | pl.Schema = None,
         dtypes: Optional[Dict[str, pl.Schema]] = None,
         n_rows: Optional[int] = None,
         row_index_name: Optional[str] = None,

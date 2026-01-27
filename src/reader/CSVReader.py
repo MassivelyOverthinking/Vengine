@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
@@ -33,7 +33,7 @@ class CSVReader(BaseReader):
     def __init__(
         self,
         *,
-        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        schema: Dict[str, pl.DataType] | pl.Schema = None,
         dtypes: Optional[Dict[str, pl.Schema]] = None,
         separator: str = ",",
         header: Optional[bool] = True,

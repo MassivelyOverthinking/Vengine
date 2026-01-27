@@ -8,7 +8,7 @@ from src.typings import ReaderConfig, ReaderPlan, ReaderResult, InputType
 from src.errors import ReaderSchemaError, ReaderBuildError
 from src.utility.setup_logger import get_class_logger
 
-from typing import Tuple, Any, Dict, Hashable, Union
+from typing import Tuple, Any, Dict, Hashable
 from abc import abstractmethod
 from datetime import datetime
 from time import perf_counter
@@ -30,7 +30,7 @@ class BaseReader():
 
     def __init__(
         self,
-        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        schema: Dict[str, pl.DataType] | pl.Schema = None,
         infer_schema: bool = False,
         infer_rows: int = 100,
         verbosity: int = 0

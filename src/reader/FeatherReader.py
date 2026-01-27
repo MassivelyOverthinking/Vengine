@@ -4,7 +4,7 @@
 
 import polars as pl
 
-from typing import Optional, Union, Dict
+from typing import Optional, Dict
 from polars.lazyframe import LazyFrame
 
 from src.reader import BaseReader
@@ -29,7 +29,7 @@ class FeatherReader(BaseReader):
     def __init__(
         self,
         *,
-        schema: Union[pl.Schema, Dict[str, pl.DataType]] = None,
+        schema: Dict[str, pl.DataType] | pl.Schema = None,
         dtypes: Optional[Dict[str, pl.Schema]] = None,
         n_rows: Optional[int] = None,
         cache: bool = True,
